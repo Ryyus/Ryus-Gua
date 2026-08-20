@@ -1,19 +1,20 @@
 name: Publish Ryu's Gua v0.9.3 verified release
 
 on:
-  push:
+  pull_request:
     branches: ["main"]
-    paths: [".v093-artifact-url"]
 
 permissions:
   contents: write
 
 jobs:
   publish:
+    if: github.head_ref == 'v0.9.3-publish'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: v0.9.3-publish
           fetch-depth: 0
       - name: Download and verify private signed bundle
         shell: bash
@@ -30,7 +31,7 @@ jobs:
           test "$(sha256sum dist/ZhangGua-v0.9.3-legacy.apk | awk '{print $1}')" = "$LEGACY_SHA"
           unzip -t dist/ZhangGua-v0.9.3-release.apk >/dev/null
           unzip -t dist/ZhangGua-v0.9.3-legacy.apk >/dev/null
-      - name: Prepare v0.9.3 metadata and clean source archive
+      - name: Prepare clean source archive
         shell: bash
         run: |
           set -euo pipefail
@@ -53,7 +54,7 @@ jobs:
           zip -qr dist/Ryus-Gua-v0.9.3-source.zip . \
             -x '.git/*' '.gradle/*' '*/build/*' 'local.properties' 'dist/*' '.v093-*' '.github/workflows/publish-v093.yml'
           unzip -t dist/Ryus-Gua-v0.9.3-source.zip >/dev/null
-          sha256sum dist/Ryus-Gua-v0.9.3-release.apk dist/ZhangGua-v0.9.3-legacy.apk dist/Ryus-Gua-v0.9.3-source.zip | tee dist/sha256-release.txt
+          sha256sum dist/ZhangGua-v0.9.3-release.apk dist/ZhangGua-v0.9.3-legacy.apk dist/Ryus-Gua-v0.9.3-source.zip | tee dist/sha256-release.txt
       - name: Create bilingual GitHub Release
         shell: bash
         env:
@@ -118,12 +119,3 @@ jobs:
           gh release download v0.9.3 -D /tmp/v093-public -p 'ZhangGua-v0.9.3-release.apk' -p 'ZhangGua-v0.9.3-legacy.apk'
           test "$(sha256sum /tmp/v093-public/ZhangGua-v0.9.3-release.apk | awk '{print $1}')" = "$STANDARD_SHA"
           test "$(sha256sum /tmp/v093-public/ZhangGua-v0.9.3-legacy.apk | awk '{print $1}')" = "$LEGACY_SHA"
-      - name: Commit final update metadata
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add update/latest.json
-          git commit -m 'Publish Ryu’s Gua v0.9.3 update metadata' || true
-          git push origin HEAD:main
