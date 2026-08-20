@@ -195,6 +195,17 @@ public class MainActivity extends Activity implements SensorEventListener {
         private boolean hapticEnabled = true;
         private boolean shakeEnabled = true;
         private boolean manualCasting = false;
+        private boolean verticalFlipEnabled = false;
+        private boolean formalCastingActive = false;
+        private boolean formalAwaitingManual = false;
+        private long formalStartEpoch = 0L;
+        private final Runnable formalClockTicker = new Runnable() {
+            @Override public void run() {
+                if (!formalCastingActive || state != State.CASTING) return;
+                postInvalidateOnAnimation();
+                handler.postDelayed(this, 250L);
+            }
+        };
         private static final String ANIM_CLASSIC = "classic";
         private static final String ANIM_PHYSICS = "physics";
         private String coinAnimationMode = ANIM_CLASSIC;
@@ -299,6 +310,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             hapticEnabled = pref.getBoolean("haptic", true);
             shakeEnabled = pref.getBoolean("shake", true);
             manualCasting = pref.getBoolean("manual_cast", false);
+            verticalFlipEnabled = pref.getBoolean("vertical_flip", false);
             coinAnimationMode = pref.getString("coin_animation", ANIM_CLASSIC);
             if (!ANIM_PHYSICS.equals(coinAnimationMode)) coinAnimationMode = ANIM_CLASSIC;
         }
@@ -309,6 +321,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                     .putBoolean("haptic", hapticEnabled)
                     .putBoolean("shake", shakeEnabled)
                     .putBoolean("manual_cast", manualCasting)
+                    .putBoolean("vertical_flip", verticalFlipEnabled)
                     .putString("coin_animation", coinAnimationMode)
                     .apply();
         }
@@ -319,6 +332,13 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (state == State.HISTORY) { state = State.IDLE; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
             if (state == State.AI) { state = State.RESULT; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
             if (state == State.RESULT) { state = State.IDLE; loadedFromHistory = false; postInvalidateOnAnimation(); return true; }
+            if (state == State.CASTING && formalCastingActive) {
+                cancelFormalCasting();
+                state = State.IDLE;
+                postInvalidateOnAnimation();
+                Toast.makeText(getContext(), "正式起卦已取消", Toast.LENGTH_SHORT).show();
+                return true;
+            }
             return false;
         }
 
@@ -332,6 +352,11 @@ public class MainActivity extends Activity implements SensorEventListener {
                 return;
             }
             if (state == State.CASTING && manualCasting && !lineAnimating && castCount < 6) {
+                if (formalCastingActive && !formalAwaitingManual) {
+                    Toast.makeText(getContext(), "正式起卦 · 请等待定时提示", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (formalCastingActive) formalAwaitingManual = false;
                 haptic(HapticFeedbackConstants.CLOCK_TICK);
                 pulse(15, 90);
                 castNext();
@@ -436,7 +461,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (bootStep >= 1) text(c, "掌", cx-dp(22), y, 42, FG, Paint.Align.CENTER, true);
             if (bootStep >= 2) text(c, "卦", cx+dp(22), y, 42, GOLD, Paint.Align.CENTER, true);
             if (bootStep >= 3) {
-                text(c, "ZHANG / GUA", cx, y+dp(31), 10, MUTED, Paint.Align.CENTER, true);
+                text(c, "RYU\'S GUA", cx, y+dp(31), 10, MUTED, Paint.Align.CENTER, true);
                 text(c, "电子蓍筮终端", cx, y+dp(52), 9.5f, FG, Paint.Align.CENTER, false);
             }
             float barL=dp(30), barR=w-dp(30), barY=h*.70f;
@@ -445,12 +470,12 @@ public class MainActivity extends Activity implements SensorEventListener {
             paint.setStyle(Paint.Style.FILL); paint.setColor(GOLD);
             c.drawRect(barL+dp(2), barY+dp(2), barL+dp(2)+(barR-barL-dp(4))*bootSweep, barY+dp(6), paint);
             text(c, bootStep < 4 ? "INITIALIZING..." : "READY", cx, barY+dp(28), 8, bootStep<4?MUTED:GOLD, Paint.Align.CENTER, true);
-            text(c, "v0.7 / gesture-safe build", cx, h-dp(36), 7.5f, MUTED, Paint.Align.CENTER, false);
+            text(c, "v0.9.1 / Ryu\'s Gua", cx, h-dp(36), 7.5f, MUTED, Paint.Align.CENTER, false);
         }
 
         private void drawHeader(Canvas c, float w) {
             text(c, "掌卦", dp(20), dp(41), 26, FG, Paint.Align.LEFT, true);
-            text(c, "ZHANG · GUA / 0.9", dp(20), dp(61), 9, MUTED, Paint.Align.LEFT, false);
+            text(c, "RYU\'S GUA / 0.9.1", dp(20), dp(61), 9, MUTED, Paint.Align.LEFT, false);
             text(c, "易", w - dp(22), dp(43), 25, GOLD, Paint.Align.RIGHT, true);
             line(c, dp(20), dp(75), w - dp(20), dp(75), GOLD, 1);
         }
@@ -483,8 +508,13 @@ public class MainActivity extends Activity implements SensorEventListener {
         private void drawCasting(Canvas c, float w, float h) {
             float cx = w / 2f;
             int shown = Math.min(castCount + 1, 6);
-            text(c, String.format(Locale.CHINA, "第 %d / 6 爻", shown), cx, dp(112), 13, GOLD, Paint.Align.CENTER, true);
-            float coinY = dp(177);
+            if (formalCastingActive) {
+                text(c, "正式起卦 · " + formatClock(System.currentTimeMillis()), cx, dp(104), 10.5f, GOLD, Paint.Align.CENTER, true);
+                text(c, String.format(Locale.CHINA, "第 %d / 6 爻", shown), cx, dp(126), 12, FG, Paint.Align.CENTER, true);
+            } else {
+                text(c, String.format(Locale.CHINA, "第 %d / 6 爻", shown), cx, dp(112), 13, GOLD, Paint.Align.CENTER, true);
+            }
+            float coinY = formalCastingActive ? dp(183) : dp(177);
             if (!(ANIM_PHYSICS.equals(coinAnimationMode) && physicsActive)) {
                 for (int i = 0; i < 3; i++) drawCoin(c, cx + dp((i - 1) * 72), coinY, currentCoins[i], i);
             }
@@ -492,7 +522,9 @@ public class MainActivity extends Activity implements SensorEventListener {
             float reserved = manualCasting ? dp(145) : dp(80);
             RectF frame = new RectF(dp(35), dp(234), w - dp(35), h - reserved);
             panel(c, frame);
-            text(c, manualCasting ? "六爻 / 点击或摇动逐爻投掷" : "六爻 / 自动投掷", frame.left + dp(14), frame.top + dp(24), 9.5f, MUTED, Paint.Align.LEFT, false);
+            String castModeText = formalCastingActive ? (manualCasting ? "六爻 / 正式定时 · 手动确认" : "六爻 / 正式定时 · 自动")
+                    : (manualCasting ? "六爻 / 点击或摇动逐爻投掷" : "六爻 / 自动投掷");
+            text(c, castModeText, frame.left + dp(14), frame.top + dp(24), 9.5f, MUTED, Paint.Align.LEFT, false);
             drawStack(c, frame.centerX(), frame.bottom - dp(24), lines, castCount, false, dp(78), dp(32));
 
             if (manualCasting || ANIM_PHYSICS.equals(coinAnimationMode)) {
@@ -501,6 +533,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 String label;
                 if (castCount >= 6) label = "成卦中…";
                 else if (lineAnimating) label = "投掷中…";
+                else if (formalCastingActive && manualCasting) label = formalAwaitingManual ? "点击 · 掷此爻" : "等待定时…";
                 else label = manualCasting ? "点击 · 下一爻" : "自动 · 下一爻";
                 button(c, primaryButton, label, lineAnimating ? MUTED : GOLD, true, 11.5f);
             } else {
@@ -518,6 +551,12 @@ public class MainActivity extends Activity implements SensorEventListener {
             float pulse = 1f + 0.025f * (float) Math.sin(phase * 2f);
             float r = dp(26) * pulse;
             float cy = y - lift;
+            float flipScale = 1f;
+            if (verticalFlipEnabled && lineAnimating) {
+                flipScale = Math.max(0.14f, Math.abs((float) Math.cos(phase)));
+            }
+            c.save();
+            c.scale(1f, flipScale, x, cy);
             RectF outer = new RectF(x - r, cy - r, x + r, cy + r);
             paint.setStyle(Paint.Style.FILL);
             paint.setColor(Color.rgb(39, 34, 23));
@@ -539,6 +578,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             paint.setColor(GOLD);
             c.drawRect(square, paint);
             text(c, face, x, cy + dp(5), 10, FG, Paint.Align.CENTER, true);
+            c.restore();
         }
 
         private void drawPhysicsCoins(Canvas c) {
@@ -557,6 +597,9 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         private void drawPhysicsCoin(Canvas c, float x, float y, String face, float angle, float scale) {
             float r = dp(26) * Math.max(0.72f, Math.min(1.22f, scale));
+            float flipScale = verticalFlipEnabled ? Math.max(0.14f, Math.abs((float) Math.cos(angle))) : 1f;
+            c.save();
+            c.scale(1f, flipScale, x, y);
             paint.setStyle(Paint.Style.FILL);
             paint.setColor(Color.rgb(39, 34, 23));
             c.drawCircle(x, y, r, paint);
@@ -579,6 +622,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             c.drawRect(square, paint);
             c.restore();
             text(c, face, x, y + dp(5), 10, FG, Paint.Align.CENTER, true);
+            c.restore();
         }
 
         private String oppositeFace(String face) {
@@ -881,6 +925,11 @@ public class MainActivity extends Activity implements SensorEventListener {
             }
             if (state == State.CASTING && manualCasting) {
                 if (primaryButton.contains(x, y) && !lineAnimating && castCount < 6) {
+                    if (formalCastingActive && !formalAwaitingManual) {
+                        Toast.makeText(getContext(), "正式起卦 · 请等待定时提示", Toast.LENGTH_SHORT).show();
+                        return true;
+                    }
+                    if (formalCastingActive) formalAwaitingManual = false;
                     haptic(HapticFeedbackConstants.CLOCK_TICK);
                     pulse(15, 90);
                     castNext();
@@ -900,6 +949,9 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         private void startCasting() {
             handler.removeCallbacksAndMessages(null);
+            formalCastingActive = false;
+            formalAwaitingManual = false;
+            formalStartEpoch = 0L;
             Arrays.fill(lines, 0);
             castCount = 0;
             toastLine = "";
@@ -910,6 +962,66 @@ public class MainActivity extends Activity implements SensorEventListener {
             state = State.CASTING;
             postInvalidateOnAnimation();
             castNext();
+        }
+
+        private void startFormalCasting() {
+            handler.removeCallbacksAndMessages(null);
+            Arrays.fill(lines, 0);
+            castCount = 0;
+            toastLine = "";
+            coinPhase = 0f;
+            lineAnimating = false;
+            physicsActive = false;
+            loadedFromHistory = false;
+            formalCastingActive = true;
+            formalAwaitingManual = false;
+            long now = System.currentTimeMillis();
+            formalStartEpoch = ((now / 60000L) + 1L) * 60000L;
+            state = State.CASTING;
+            toastLine = "正式起卦 · 首爻 " + formatClock(formalStartEpoch);
+            postInvalidateOnAnimation();
+            handler.post(formalClockTicker);
+            for (int i = 0; i < 6; i++) {
+                final int index = i;
+                final long target = formalStartEpoch + i * 10000L;
+                handler.postDelayed(() -> onFormalCastTime(index, target), Math.max(0L, target - System.currentTimeMillis()));
+            }
+        }
+
+        private void onFormalCastTime(int index, long target) {
+            if (!formalCastingActive || state != State.CASTING || castCount > index) return;
+            if (castCount < index || lineAnimating) {
+                handler.postDelayed(() -> onFormalCastTime(index, target), 120L);
+                return;
+            }
+            if (manualCasting) {
+                formalAwaitingManual = true;
+                toastLine = "第 " + (index + 1) + " 爻 · 请掷爻 · 3秒后自动";
+                pulse(24, 135);
+                haptic(HapticFeedbackConstants.CONFIRM);
+                postInvalidateOnAnimation();
+                handler.postDelayed(() -> {
+                    if (!formalCastingActive || state != State.CASTING || !formalAwaitingManual) return;
+                    if (castCount != index || lineAnimating) return;
+                    formalAwaitingManual = false;
+                    toastLine = "第 " + (index + 1) + " 爻 · 自动补掷";
+                    castNext();
+                }, 3000L);
+            } else {
+                toastLine = "第 " + (index + 1) + " 爻 · " + formatClock(target);
+                castNext();
+            }
+        }
+
+        private void cancelFormalCasting() {
+            formalCastingActive = false;
+            formalAwaitingManual = false;
+            formalStartEpoch = 0L;
+            handler.removeCallbacksAndMessages(null);
+        }
+
+        private String formatClock(long epochMs) {
+            return new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date(epochMs));
         }
 
         private void castNext() {
@@ -1050,16 +1162,23 @@ public class MainActivity extends Activity implements SensorEventListener {
             castCount++;
             lineAnimating = false;
             physicsActive = false;
+            if (formalCastingActive && castCount < 6) {
+                long nextAt = formalStartEpoch + castCount * 10000L;
+                toastLine = HexagramEngine.lineText(value) + " · 待 " + formatClock(nextAt);
+            }
             postInvalidateOnAnimation();
             if (castCount >= 6) {
                 handler.postDelayed(this::finishCasting, manualCasting ? 300L : 240L);
-            } else if (!manualCasting) {
+            } else if (!manualCasting && !formalCastingActive) {
                 handler.postDelayed(this::castNext, ANIM_PHYSICS.equals(coinAnimationMode) ? 300L : 220L);
             }
         }
 
         private void finishCasting() {
             if (state != State.CASTING) return;
+            formalCastingActive = false;
+            formalAwaitingManual = false;
+            handler.removeCallbacks(formalClockTicker);
             state = State.RESULT;
             HistoryStore.add(getContext(), lines);
             if (soundEnabled) audio.complete();
@@ -1195,22 +1314,23 @@ public class MainActivity extends Activity implements SensorEventListener {
             heading.setText("掌卦设置"); heading.setTextSize(22); heading.setTextColor(FG);
             heading.setTypeface(Typeface.DEFAULT_BOLD); root.addView(heading);
             TextView sub = new TextView(ctx);
-            sub.setText("SETTINGS / v0.9"); sub.setTextSize(10); sub.setTextColor(MUTED);
-            sub.setPadding(0, 0, 0, (int)(12*density)); root.addView(sub);
+            sub.setText("RYU'S GUA / SETTINGS / v0.9.1"); sub.setTextSize(10); sub.setTextColor(MUTED);
+            root.addView(sub);
+            TextView author = new TextView(ctx);
+            author.setText("作者 · Ryyus"); author.setTextSize(9.5f); author.setTextColor(MUTED);
+            author.setPadding(0, (int)(2*density), 0, (int)(12*density)); root.addView(author);
 
-            LinearLayout interaction = settingsCard(ctx, "交互与动画",
-                    (ANIM_PHYSICS.equals(coinAnimationMode) ? "物理飞出" : "经典浮动")
-                            + " · " + (manualCasting ? "逐爻" : "自动") + " · " + (shakeEnabled ? "可摇动" : "仅点击"));
+            LinearLayout interaction = settingsCard(ctx, "交互与动画", interactionSummary());
             root.addView(interaction);
-            interaction.setOnClickListener(v -> showInteractionSettingsDialog());
+            TextView interactionSummaryView = (TextView) interaction.getChildAt(1);
+            interaction.setOnClickListener(v -> showInteractionSettingsDialog(() -> interactionSummaryView.setText(interactionSummary())));
 
-            String providerName = providerLabel(saved.provider);
-            LinearLayout ai = settingsCard(ctx, "AI 解卦",
-                    providerName + " · " + (saved.isConfigured() ? saved.model : "未配置 API Key"));
+            LinearLayout ai = settingsCard(ctx, "AI 解卦", aiSettingsSummary(AiSettingsStore.load(ctx)));
             root.addView(ai);
-            ai.setOnClickListener(v -> showAiSettingsPanel(false));
+            TextView aiSummaryView = (TextView) ai.getChildAt(1);
+            ai.setOnClickListener(v -> showAiSettingsPanel(false, () -> aiSummaryView.setText(aiSettingsSummary(AiSettingsStore.load(ctx)))));
 
-            LinearLayout update = settingsCard(ctx, "版本更新", "当前 v0.9 · 点击检查新版本");
+            LinearLayout update = settingsCard(ctx, "版本更新", "当前 v0.9.1 · 点击检查新版本");
             root.addView(update);
             update.setOnClickListener(v -> UpdateChecker.check((Activity) ctx, true));
 
@@ -1225,6 +1345,17 @@ public class MainActivity extends Activity implements SensorEventListener {
                 } catch (Throwable ignored) {}
             });
             dialog.show();
+        }
+
+        private String interactionSummary() {
+            String base = (ANIM_PHYSICS.equals(coinAnimationMode) ? "物理飞出" : "经典浮动")
+                    + " · " + (manualCasting ? "逐爻" : "自动")
+                    + " · " + (shakeEnabled ? "可摇动" : "仅点击");
+            return verticalFlipEnabled ? base + " · 垂直翻转" : base;
+        }
+
+        private String aiSettingsSummary(AiSettingsStore.Settings saved) {
+            return providerLabel(saved.provider) + " · " + (saved.isConfigured() ? saved.model : "未配置 API Key");
         }
 
         private LinearLayout settingsCard(Context ctx, String titleText, String summaryText) {
@@ -1250,7 +1381,9 @@ public class MainActivity extends Activity implements SensorEventListener {
             return card;
         }
 
-        private void showInteractionSettingsDialog() {
+        private void showInteractionSettingsDialog() { showInteractionSettingsDialog(null); }
+
+        private void showInteractionSettingsDialog(Runnable onSaved) {
             Context ctx = getContext();
             float density = getResources().getDisplayMetrics().density;
             LinearLayout box = new LinearLayout(ctx);
@@ -1268,19 +1401,56 @@ public class MainActivity extends Activity implements SensorEventListener {
             CheckBox haptic = new CheckBox(ctx); haptic.setText("震动 / 触感反馈"); haptic.setChecked(hapticEnabled); box.addView(haptic);
             CheckBox shake = new CheckBox(ctx); shake.setText("摇动起卦 / 继续投掷"); shake.setChecked(shakeEnabled); box.addView(shake);
             CheckBox manual = new CheckBox(ctx); manual.setText("逐爻手动投掷"); manual.setChecked(manualCasting); box.addView(manual);
+            CheckBox verticalFlip = new CheckBox(ctx); verticalFlip.setText("垂直翻转 · 铜钱沿水平轴翻面"); verticalFlip.setChecked(verticalFlipEnabled); box.addView(verticalFlip);
+
+            TextView formalTitle = new TextView(ctx); formalTitle.setText("正式起卦"); formalTitle.setTextSize(14); formalTitle.setTextColor(GOLD);
+            formalTitle.setPadding(0, (int)(12*density), 0, 0); box.addView(formalTitle);
+            TextView formalClock = new TextView(ctx); formalClock.setTextSize(16); formalClock.setTextColor(FG); formalClock.setTypeface(Typeface.MONOSPACE); box.addView(formalClock);
+            TextView formalInfo = new TextView(ctx);
+            formalInfo.setText("下一整分起初爻，随后在 +10s / +20s / +30s / +40s / +50s 起后五爻。逐爻手动开启时，每个节点先提醒；3秒未操作则自动补掷。");
+            formalInfo.setTextSize(10.5f); formalInfo.setTextColor(MUTED); formalInfo.setPadding(0, (int)(4*density), 0, (int)(6*density)); box.addView(formalInfo);
+            Button formalStart = new Button(ctx); formalStart.setText("正式起卦 · 等待整分"); box.addView(formalStart);
+
+            final Handler clockHandler = new Handler(Looper.getMainLooper());
+            final SimpleDateFormat clockFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+            final Runnable[] clockUpdate = new Runnable[1];
+            clockUpdate[0] = () -> {
+                long now = System.currentTimeMillis();
+                long next = ((now / 60000L) + 1L) * 60000L;
+                formalClock.setText("当前 " + clockFormat.format(new Date(now)) + "  ·  整分 " + clockFormat.format(new Date(next)));
+                clockHandler.postDelayed(clockUpdate[0], 250L);
+            };
 
             AlertDialog dialog = new AlertDialog.Builder(ctx).setTitle("交互与动画").setView(box)
                     .setPositiveButton("保存", null).setNegativeButton("取消", null).create();
-            dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            dialog.setOnShowListener(d -> {
+                clockHandler.post(clockUpdate[0]);
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                    soundEnabled = sound.isChecked(); hapticEnabled = haptic.isChecked(); shakeEnabled = shake.isChecked(); manualCasting = manual.isChecked();
+                    verticalFlipEnabled = verticalFlip.isChecked();
+                    coinAnimationMode = animation.getCheckedRadioButtonId() == physics.getId() ? ANIM_PHYSICS : ANIM_CLASSIC;
+                    saveExperienceSettings();
+                    if (onSaved != null) onSaved.run();
+                    dialog.dismiss(); postInvalidateOnAnimation();
+                    Toast.makeText(ctx, "交互设置已保存", Toast.LENGTH_SHORT).show();
+                });
+            });
+            formalStart.setOnClickListener(v -> {
                 soundEnabled = sound.isChecked(); hapticEnabled = haptic.isChecked(); shakeEnabled = shake.isChecked(); manualCasting = manual.isChecked();
+                verticalFlipEnabled = verticalFlip.isChecked();
                 coinAnimationMode = animation.getCheckedRadioButtonId() == physics.getId() ? ANIM_PHYSICS : ANIM_CLASSIC;
-                saveExperienceSettings(); dialog.dismiss(); postInvalidateOnAnimation();
-                Toast.makeText(ctx, "交互设置已保存", Toast.LENGTH_SHORT).show();
-            }));
+                saveExperienceSettings();
+                if (onSaved != null) onSaved.run();
+                dialog.dismiss();
+                startFormalCasting();
+            });
+            dialog.setOnDismissListener(d -> clockHandler.removeCallbacksAndMessages(null));
             dialog.show();
         }
 
-        private void showAiSettingsPanel(boolean startAiAfterSave) {
+        private void showAiSettingsPanel(boolean startAiAfterSave) { showAiSettingsPanel(startAiAfterSave, null); }
+
+        private void showAiSettingsPanel(boolean startAiAfterSave, Runnable onSaved) {
             final Context ctx = getContext();
             final AiSettingsStore.Settings[] current = {AiSettingsStore.load(ctx)};
             final float density = getResources().getDisplayMetrics().density;
@@ -1361,6 +1531,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 AiSettingsStore.clearApiKey(ctx, selected);
                 current[0] = AiSettingsStore.loadProvider(ctx, selected);
                 key.setText(""); key.setHint("API Key（当前服务商已清除）");
+                if (onSaved != null) onSaved.run();
                 Toast.makeText(ctx,"已清除 " + providerLabel(selected) + " 的 API Key",Toast.LENGTH_SHORT).show();
             });
 
@@ -1378,6 +1549,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                     }
                     if(startAiAfterSave&&!now.isConfigured()){ Toast.makeText(ctx,"请填写并保存 " + providerLabel(selected) + " 的 API Key",Toast.LENGTH_SHORT).show(); return; }
                     dialog.dismiss();
+                    if (onSaved != null) onSaved.run();
                     Toast.makeText(ctx,providerLabel(selected) + " 设置已保存",Toast.LENGTH_SHORT).show();
                     if(startAiAfterSave) requestAiReading(now);
                     postInvalidateOnAnimation();

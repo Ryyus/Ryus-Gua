@@ -19,7 +19,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
-/** Lightweight update checker for the public ZhangGua release channel. */
+/** Lightweight update checker for the public Ryu's Gua release channel. */
 final class UpdateChecker {
     private static final String META_URL = "https://raw.githubusercontent.com/Ryyus/Ryus-Gua/main/update/latest.json";
     private static final String PREF = "zhanggua_updates";
@@ -43,7 +43,7 @@ final class UpdateChecker {
                 conn.setReadTimeout(7000);
                 conn.setUseCaches(false);
                 conn.setRequestProperty("Accept", "application/json");
-                conn.setRequestProperty("User-Agent", "ZhangGua-Android");
+                conn.setRequestProperty("User-Agent", "Ryus-Gua-Android");
                 int code = conn.getResponseCode();
                 if (code < 200 || code >= 300) throw new IllegalStateException("HTTP " + code);
                 String body = readAll(conn.getInputStream());
@@ -76,7 +76,7 @@ final class UpdateChecker {
             } finally {
                 if (conn != null) conn.disconnect();
             }
-        }, "zhanggua-update-check").start();
+        }, "ryus-gua-update-check").start();
     }
 
     private static int currentVersionCode(Context context) throws Exception {

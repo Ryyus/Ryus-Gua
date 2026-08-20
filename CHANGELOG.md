@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.1
+- Settings card summaries refresh immediately after AI or interaction settings are saved.
+- Added **正式起卦**: first line is cast at the next whole minute, then subsequent lines at +10/+20/+30/+40/+50 seconds.
+- When manual line casting is enabled during 正式起卦, each scheduled slot prompts the user first and force-casts after 3 seconds without input.
+- Added optional **vertical coin flip** rendering for both classic and physics animations.
+- Changed visible English branding from ZhangGua to **Ryu's Gua** while keeping the Chinese app name 掌卦 and package ID `com.zhanggua.app` unchanged.
+- Added author credit in Settings.
+
 ## 0.9.0
 - Fixed AI settings persistence. Saving now writes synchronously and performs an immediate read-back verification instead of only showing a success message.
 - Added provider-scoped AI configuration: OpenAI, DeepSeek, Gemini, 通义千问, Kimi and Custom each retain independent encrypted API keys, endpoints, models and protocol modes.
