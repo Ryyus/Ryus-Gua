@@ -10,6 +10,7 @@
 ### 1.1 重要变化
 
 - “解卦”现在首先打开**离线解卦**：不需要网络、账号、API Key 或云端模型。
+- **正式起卦入口直接放在主页**，与普通起卦明确分开；设置页仅保留交互与动画参数。
 - 离线结果根据本卦/之卦、上下卦象意与动爻数量动态生成，并采用透明的传统常见变爻取用规则。
 - 离线结果页提供 **AI 解卦** 按钮；AI 仅作为用户主动选择的增强层，并基于本机已经计算好的卦象与取用结果继续解释。
 - 修复应用内版本号仍显示 0.9.3 的问题；所有版本展示改为读取当前安装包的 `versionName`，以后升级无需逐处修改。
@@ -60,6 +61,7 @@ gradle assembleStandardDebug assembleLegacyDebug
 ### What's new in 1.1
 
 - **Reading** now opens a fully offline deterministic interpretation first; no network, account, API key, or cloud model is required.
+- **Formal Casting now has a dedicated home-screen button**, separate from normal casting; Settings only contains interaction/animation preferences.
 - The offline page derives its result from the base/changed hexagrams, trigram symbolism, and moving-line selection rules.
 - AI is an optional second step launched from the offline result page and is grounded in the locally computed reading.
 - Fixed stale in-app version labels; all version displays now read the installed package `versionName`, so future releases do not need per-screen edits.
