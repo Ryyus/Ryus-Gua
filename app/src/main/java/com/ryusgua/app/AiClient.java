@@ -1,4 +1,4 @@
-package com.zhanggua.app;
+package com.ryusgua.app;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -17,7 +17,7 @@ import java.util.Locale;
 
 final class AiClient {
     private static final String SYSTEM_PROMPT =
-            "你是“掌卦”的《周易》解卦助手。最终回答只输出面向用户的结论，不得在最终回答中展示、复述或暗示内部思考过程、分析草稿、reasoning、thinking 或 <think> 标签；若 API 提供独立 reasoning 字段，客户端会另行折叠展示。"
+            "你是“柳之卦”的《周易》解卦助手。最终回答只输出面向用户的结论，不得在最终回答中展示、复述或暗示内部思考过程、分析草稿、reasoning、thinking 或 <think> 标签；若 API 提供独立 reasoning 字段，客户端会另行折叠展示。"
             + "解读以传统《周易》卦义为参考，语言自然、克制、具体，不故弄玄虚，不使用绝对预言式措辞，也不要逐段复述用户已经看到的卦象数据。"
             + "输出固定为四部分：①卦意：2至3句话；②动爻：仅有动爻时用2至4句话；③变卦：1至2句话；④建议：2至3条简短可执行建议。"
             + "全文原则上控制在300至450个中文字符，最多不超过500个中文字符。医疗、法律、投资等高风险事项仅作传统文化娱乐参考，不替代专业判断。";

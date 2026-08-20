@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0 / 正式版
+- 中文：启用全新包名 `com.ryusgua.app`，应用名称统一为“柳之卦”，不再提供 0.9.x 覆盖安装/数据迁移兼容。
+- 中文：保留 Standard（Android 8.0+）与 Legacy（Android 6.0+）双 APK，并清理旧命名空间与历史迁移代码。
+- English: Introduced the new `com.ryusgua.app` application identity and unified the app name as 柳之卦 / Ryu's Gua. In-place/data migration from 0.9.x is intentionally not supported.
+- English: Retained Standard (Android 8.0+) and Legacy (Android 6.0+) APKs while removing the pre-1.0 namespace and migration helpers.
+
 ## 0.9.3
 - 中文：经典浮动动画延长到与物理飞出一致的约 1.08 秒；正式起卦会关闭设置并返回主界面；预设 AI 服务商 Endpoint 改为只读显示。
 - 中文：历史记录新增秒级时间、正式起卦标记、AI 解读持久化、PIN 固定与备注；30 条上限仅统计未固定记录。

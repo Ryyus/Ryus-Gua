@@ -3,15 +3,15 @@ plugins {
 }
 
 android {
-    namespace 'com.zhanggua.app'
+    namespace 'com.ryusgua.app'
     compileSdk 35
 
     defaultConfig {
-        applicationId 'com.zhanggua.app'
+        applicationId 'com.ryusgua.app'
         minSdk 23
         targetSdk 35
-        versionCode 12
-        versionName '0.9.3'
+        versionCode 100
+        versionName '1.0.0'
     }
 
     flavorDimensions 'compat'

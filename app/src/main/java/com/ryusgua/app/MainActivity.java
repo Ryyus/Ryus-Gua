@@ -1,4 +1,4 @@
-package com.zhanggua.app;
+package com.ryusgua.app;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -126,7 +126,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                             | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         } catch (Throwable ignored) {
-            // Fullscreen is cosmetic. A ROM-specific failure must never stop 掌卦 from opening.
+            // Fullscreen is cosmetic. A ROM-specific failure must never stop 柳之卦 from opening.
         }
     }
 
@@ -332,7 +332,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         private void loadExperienceSettings() {
-            SharedPreferences pref = getContext().getSharedPreferences("zhanggua_experience", Context.MODE_PRIVATE);
+            SharedPreferences pref = getContext().getSharedPreferences("ryusgua_experience", Context.MODE_PRIVATE);
             soundEnabled = pref.getBoolean("sound", true);
             hapticEnabled = pref.getBoolean("haptic", true);
             shakeEnabled = pref.getBoolean("shake", true);
@@ -343,7 +343,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         private void saveExperienceSettings() {
-            getContext().getSharedPreferences("zhanggua_experience", Context.MODE_PRIVATE).edit()
+            getContext().getSharedPreferences("ryusgua_experience", Context.MODE_PRIVATE).edit()
                     .putBoolean("sound", soundEnabled)
                     .putBoolean("haptic", hapticEnabled)
                     .putBoolean("shake", shakeEnabled)
@@ -519,7 +519,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         private void drawHeader(Canvas c, float w) {
-            text(c, "掌卦", dp(20), dp(41), 26, FG, Paint.Align.LEFT, true);
+            text(c, "柳之卦", dp(20), dp(41), 26, FG, Paint.Align.LEFT, true);
             text(c, "RYU\'S GUA / 0.9.3", dp(20), dp(61), 9, MUTED, Paint.Align.LEFT, false);
             text(c, "易", w - dp(22), dp(43), 25, GOLD, Paint.Align.RIGHT, true);
             line(c, dp(20), dp(75), w - dp(20), dp(75), GOLD, 1);
@@ -1350,7 +1350,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             List<String> moving = HexagramEngine.movingLineLabels(lines);
             ZhouYiRepository.TextEntry text = zhouYi.get(base.name);
             StringBuilder sb = new StringBuilder();
-            sb.append("【掌卦】\n");
+            sb.append("【柳之卦】\n");
             sb.append("本卦：").append(base.compact()).append("（上").append(base.upper).append("下").append(base.lower).append("）\n");
             sb.append("卦辞：").append(text.guaCi).append("\n");
             sb.append("变卦：").append(changed.compact()).append("\n");
@@ -1373,7 +1373,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         private void copyResult() {
             ClipboardManager cb = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-            cb.setPrimaryClip(ClipData.newPlainText("掌卦结果", resultText()));
+            cb.setPrimaryClip(ClipData.newPlainText("柳之卦结果", resultText()));
             haptic(HapticFeedbackConstants.CLOCK_TICK);
             Toast.makeText(getContext(), "卦象已复制", Toast.LENGTH_SHORT).show();
         }
@@ -1483,7 +1483,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 return;
             }
             ClipboardManager cb = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-            cb.setPrimaryClip(ClipData.newPlainText("掌卦 AI 解读", aiText));
+            cb.setPrimaryClip(ClipData.newPlainText("柳之卦 AI 解读", aiText));
             haptic(HapticFeedbackConstants.CLOCK_TICK);
             Toast.makeText(getContext(), "AI 解读已复制", Toast.LENGTH_SHORT).show();
         }
@@ -1503,7 +1503,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             root.setBackgroundColor(BG);
 
             TextView heading = new TextView(ctx);
-            heading.setText("掌卦设置"); heading.setTextSize(22); heading.setTextColor(FG);
+            heading.setText("柳之卦设置"); heading.setTextSize(22); heading.setTextColor(FG);
             heading.setTypeface(Typeface.DEFAULT_BOLD); root.addView(heading);
             TextView sub = new TextView(ctx);
             sub.setText("RYU'S GUA / SETTINGS / v0.9.3"); sub.setTextSize(10); sub.setTextColor(MUTED);
@@ -1733,7 +1733,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                         String message=ex.getMessage()==null?ex.toString():ex.getMessage();
                         ((Activity)ctx).runOnUiThread(() -> { models.setEnabled(true); models.setText("读取模型"); Toast.makeText(ctx,"读取失败："+message,Toast.LENGTH_LONG).show(); });
                     }
-                }, "zhanggua-models").start();
+                }, "ryusgua-models").start();
             });
 
             clear.setOnClickListener(v -> {
