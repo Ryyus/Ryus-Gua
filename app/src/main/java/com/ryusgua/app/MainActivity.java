@@ -253,6 +253,16 @@ public class MainActivity extends Activity implements SensorEventListener {
             startBootAnimation();
         }
 
+        private String appVersion() {
+            try {
+                String version = getContext().getPackageManager()
+                        .getPackageInfo(getContext().getPackageName(), 0).versionName;
+                return version == null || version.trim().isEmpty() ? "—" : version;
+            } catch (Throwable ignored) {
+                return "—";
+            }
+        }
+
         private void startBootAnimation() {
             final long started = SystemClock.uptimeMillis();
             handler.postDelayed(() -> {
@@ -517,12 +527,12 @@ public class MainActivity extends Activity implements SensorEventListener {
             paint.setStyle(Paint.Style.FILL); paint.setColor(GOLD);
             c.drawRect(barL+dp(2), barY+dp(2), barL+dp(2)+(barR-barL-dp(4))*bootSweep, barY+dp(6), paint);
             text(c, bootStep < 4 ? "INITIALIZING..." : "READY", cx, barY+dp(28), 8, bootStep<4?MUTED:GOLD, Paint.Align.CENTER, true);
-            text(c, "v" + BuildConfig.VERSION_NAME + " / Ryu\'s Gua", cx, h-dp(36), 7.5f, MUTED, Paint.Align.CENTER, false);
+            text(c, "v" + appVersion() + " / Ryu\'s Gua", cx, h-dp(36), 7.5f, MUTED, Paint.Align.CENTER, false);
         }
 
         private void drawHeader(Canvas c, float w) {
             text(c, "柳之卦", dp(20), dp(41), 26, FG, Paint.Align.LEFT, true);
-            text(c, "RYU\'S GUA / " + BuildConfig.VERSION_NAME, dp(20), dp(61), 9, MUTED, Paint.Align.LEFT, false);
+            text(c, "RYU\'S GUA / " + appVersion(), dp(20), dp(61), 9, MUTED, Paint.Align.LEFT, false);
             text(c, "易", w - dp(22), dp(43), 25, GOLD, Paint.Align.RIGHT, true);
             line(c, dp(20), dp(75), w - dp(20), dp(75), GOLD, 1);
         }
@@ -1552,7 +1562,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             heading.setText("柳之卦设置"); heading.setTextSize(22); heading.setTextColor(FG);
             heading.setTypeface(Typeface.DEFAULT_BOLD); root.addView(heading);
             TextView sub = new TextView(ctx);
-            sub.setText("RYU'S GUA / SETTINGS / v" + BuildConfig.VERSION_NAME); sub.setTextSize(10); sub.setTextColor(MUTED);
+            sub.setText("RYU'S GUA / SETTINGS / v" + appVersion()); sub.setTextSize(10); sub.setTextColor(MUTED);
             root.addView(sub);
             TextView author = new TextView(ctx);
             author.setText("作者 · Ryyus"); author.setTextSize(9.5f); author.setTextColor(MUTED);
@@ -1571,7 +1581,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             TextView aiSummaryView = (TextView) ai.getChildAt(1);
             ai.setOnClickListener(v -> showAiSettingsPanel(false, () -> aiSummaryView.setText(aiSettingsSummary(AiSettingsStore.load(ctx)))));
 
-            LinearLayout update = settingsCard(ctx, "版本更新", "当前 v" + BuildConfig.VERSION_NAME + " · 点击检查新版本");
+            LinearLayout update = settingsCard(ctx, "版本更新", "当前 v" + appVersion() + " · 点击检查新版本");
             root.addView(update);
             update.setOnClickListener(v -> UpdateChecker.check((Activity) ctx, true));
 
