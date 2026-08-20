@@ -1,11 +1,18 @@
 # 柳之卦 · Ryu's Gua
 
-> **正式版 / Stable release: 1.1.2**  
+> **正式版 / Stable release: 1.2.0**  
 > **Android package:** `com.ryusgua.app`
 
 ## 中文
 
 **柳之卦（Ryu's Gua）** 是一款以三钱六爻为核心交互的 Android《周易》文化应用。1.0 起项目与 Android 应用统一使用“柳之卦”这一名称，并启用全新的包名 `com.ryusgua.app`。
+
+### 1.2.0 视觉更新
+
+- 主页普通起卦主按钮由 **“按下成卦”** 改为 **“一念既起 · 六爻将成”**，保留手动逐爻模式原有“按下 · 掷第一爻”提示。
+- 应用图标全面重绘为无边框现代扁平风格：深绿底、淡色流线、米白六爻与灰绿柳枝。
+- 新图标沿用主页淡白色条纹的视觉语言，并同时适配 Legacy 图标与 Android 8.0+ Adaptive Icon。
+- 版本号提升至 **1.2.0 / versionCode 120**。
 
 ### 1.1.2 开屏样式
 
@@ -73,6 +80,13 @@ gradle assembleStandardDebug assembleLegacyDebug
 ## English
 
 **Ryu's Gua (柳之卦)** is an Android I Ching / Zhou Yi cultural app built around the traditional three-coin, six-line casting interaction. Starting with 1.0, the project and the Android app share one formal identity and use the new package name `com.ryusgua.app`.
+
+### What's new in 1.2.0
+
+- Changed the normal home casting CTA from **“按下成卦”** to **“一念既起 · 六爻将成”** while keeping the manual first-line prompt unchanged.
+- Reworked the launcher icon into a borderless modern flat design with a dark green field, subtle pale stripes, ivory six-line symbol, and muted willow branch.
+- The new visual language is shared by legacy launcher icons and Android 8.0+ Adaptive Icons.
+- Version bumped to **1.2.0 / versionCode 120**.
 
 ### What's new in 1.1.2
 

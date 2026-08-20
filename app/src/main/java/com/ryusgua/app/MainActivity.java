@@ -719,7 +719,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             formalButton.set(dp(28), h - dp(174), w - dp(28), h - dp(132));
             button(c, formalButton, "正式起卦 · 等待整分", GOLD, false, 10.5f);
             primaryButton.set(dp(28), h - dp(122), w - dp(28), h - dp(64));
-            button(c, primaryButton, manualCasting ? "按下 · 掷第一爻" : "按下成卦", GOLD, true, 13);
+            button(c, primaryButton, manualCasting ? "按下 · 掷第一爻" : "一念既起 · 六爻将成", GOLD, true, 13);
             text(c, shakeEnabled ? "KEY / SHAKE" : "KEY", cx, h - dp(41), 9, GOLD, Paint.Align.CENTER, true);
             text(c, manualCasting ? "逐爻手动 · 一次一掷" : "三钱六掷 · 自动成卦", cx, h - dp(21), 8.2f, MUTED, Paint.Align.CENTER, false);
         }
