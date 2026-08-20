@@ -37,7 +37,7 @@ jobs:
           grep -q "RYU'S GUA / 0.9.1" app/src/main/java/com/zhanggua/app/MainActivity.java
           grep -q '作者 · Ryyus' app/src/main/java/com/zhanggua/app/MainActivity.java
           grep -q 'showAiSettingsPanel(false, () -> aiSummaryView.setText' app/src/main/java/com/zhanggua/app/MainActivity.java
-          git rm -f .v091-patch.gz.b64 2>/dev/null || true
+          git rm -f .v091-patch.gz.b64 .v091-branch-trigger 2>/dev/null || true
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add app
