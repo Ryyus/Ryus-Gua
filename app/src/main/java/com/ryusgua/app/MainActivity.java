@@ -174,6 +174,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         private final RectF historyButton = new RectF();
         private final RectF settingsButton = new RectF();
         private final RectF experienceButton = new RectF();
+        private final RectF formalButton = new RectF();
         private final RectF backButton = new RectF();
         private final RectF clearButton = new RectF();
         private final RectF reasoningToggleButton = new RectF();
@@ -556,6 +557,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             c.drawRect(seal, paint);
             text(c, "卦", cx, h * 0.47f + dp(19), 48, RED, Paint.Align.CENTER, true);
 
+            formalButton.set(dp(28), h - dp(174), w - dp(28), h - dp(132));
+            button(c, formalButton, "正式起卦 · 等待整分", GOLD, false, 10.5f);
             primaryButton.set(dp(28), h - dp(122), w - dp(28), h - dp(64));
             button(c, primaryButton, manualCasting ? "按下 · 掷第一爻" : "按下成卦", GOLD, true, 13);
             text(c, shakeEnabled ? "KEY / SHAKE" : "KEY", cx, h - dp(41), 9, GOLD, Paint.Align.CENTER, true);
@@ -1101,6 +1104,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
             if (e.getAction() != MotionEvent.ACTION_UP) return true;
             if (state == State.IDLE) {
+                if (formalButton.contains(x, y)) { haptic(HapticFeedbackConstants.CONFIRM); pulse(22, 120); startFormalCasting(); return true; }
                 if (primaryButton.contains(x, y)) { haptic(HapticFeedbackConstants.CONFIRM); pulse(22, 120); startCasting(); return true; }
                 if (experienceButton.contains(x, y)) { showSettingsDialog(false); return true; }
                 if (historyButton.contains(x, y)) { state = State.HISTORY; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
@@ -1573,8 +1577,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             root.addView(interaction);
             TextView interactionSummaryView = (TextView) interaction.getChildAt(1);
             interaction.setOnClickListener(v -> showInteractionSettingsDialog(
-                    () -> interactionSummaryView.setText(interactionSummary()),
-                    () -> { if (parentDialog[0] != null) parentDialog[0].dismiss(); }));
+                    () -> interactionSummaryView.setText(interactionSummary())));
 
             LinearLayout ai = settingsCard(ctx, "AI 解卦", aiSettingsSummary(AiSettingsStore.load(ctx)));
             root.addView(ai);
@@ -1633,11 +1636,9 @@ public class MainActivity extends Activity implements SensorEventListener {
             return card;
         }
 
-        private void showInteractionSettingsDialog() { showInteractionSettingsDialog(null, null); }
+        private void showInteractionSettingsDialog() { showInteractionSettingsDialog(null); }
 
-        private void showInteractionSettingsDialog(Runnable onSaved) { showInteractionSettingsDialog(onSaved, null); }
-
-        private void showInteractionSettingsDialog(Runnable onSaved, Runnable onFormalStarted) {
+        private void showInteractionSettingsDialog(Runnable onSaved) {
             Context ctx = getContext();
             float density = getResources().getDisplayMetrics().density;
             LinearLayout box = new LinearLayout(ctx);
@@ -1657,28 +1658,9 @@ public class MainActivity extends Activity implements SensorEventListener {
             CheckBox manual = new CheckBox(ctx); manual.setText("逐爻手动投掷"); manual.setChecked(manualCasting); box.addView(manual);
             CheckBox verticalFlip = new CheckBox(ctx); verticalFlip.setText("垂直翻转 · 铜钱沿水平轴翻面"); verticalFlip.setChecked(verticalFlipEnabled); box.addView(verticalFlip);
 
-            TextView formalTitle = new TextView(ctx); formalTitle.setText("正式起卦"); formalTitle.setTextSize(14); formalTitle.setTextColor(GOLD);
-            formalTitle.setPadding(0, (int)(12*density), 0, 0); box.addView(formalTitle);
-            TextView formalClock = new TextView(ctx); formalClock.setTextSize(16); formalClock.setTextColor(FG); formalClock.setTypeface(Typeface.MONOSPACE); box.addView(formalClock);
-            TextView formalInfo = new TextView(ctx);
-            formalInfo.setText("下一整分起初爻，随后在 +10s / +20s / +30s / +40s / +50s 起后五爻。逐爻手动开启时，每个节点先提醒；3秒未操作则自动补掷。");
-            formalInfo.setTextSize(10.5f); formalInfo.setTextColor(MUTED); formalInfo.setPadding(0, (int)(4*density), 0, (int)(6*density)); box.addView(formalInfo);
-            Button formalStart = new Button(ctx); formalStart.setText("正式起卦 · 等待整分"); box.addView(formalStart);
-
-            final Handler clockHandler = new Handler(Looper.getMainLooper());
-            final SimpleDateFormat clockFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
-            final Runnable[] clockUpdate = new Runnable[1];
-            clockUpdate[0] = () -> {
-                long now = System.currentTimeMillis();
-                long next = ((now / 60000L) + 1L) * 60000L;
-                formalClock.setText("当前 " + clockFormat.format(new Date(now)) + "  ·  整分 " + clockFormat.format(new Date(next)));
-                clockHandler.postDelayed(clockUpdate[0], 250L);
-            };
-
             AlertDialog dialog = new AlertDialog.Builder(ctx).setTitle("交互与动画").setView(box)
                     .setPositiveButton("保存", null).setNegativeButton("取消", null).create();
             dialog.setOnShowListener(d -> {
-                clockHandler.post(clockUpdate[0]);
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
                     soundEnabled = sound.isChecked(); hapticEnabled = haptic.isChecked(); shakeEnabled = shake.isChecked(); manualCasting = manual.isChecked();
                     verticalFlipEnabled = verticalFlip.isChecked();
@@ -1689,17 +1671,6 @@ public class MainActivity extends Activity implements SensorEventListener {
                     Toast.makeText(ctx, "交互设置已保存", Toast.LENGTH_SHORT).show();
                 });
             });
-            formalStart.setOnClickListener(v -> {
-                soundEnabled = sound.isChecked(); hapticEnabled = haptic.isChecked(); shakeEnabled = shake.isChecked(); manualCasting = manual.isChecked();
-                verticalFlipEnabled = verticalFlip.isChecked();
-                coinAnimationMode = animation.getCheckedRadioButtonId() == physics.getId() ? ANIM_PHYSICS : ANIM_CLASSIC;
-                saveExperienceSettings();
-                if (onSaved != null) onSaved.run();
-                dialog.dismiss();
-                if (onFormalStarted != null) onFormalStarted.run();
-                startFormalCasting();
-            });
-            dialog.setOnDismissListener(d -> clockHandler.removeCallbacksAndMessages(null));
             dialog.show();
         }
 
