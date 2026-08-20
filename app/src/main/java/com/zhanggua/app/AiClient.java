@@ -13,10 +13,81 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 final class AiClient {
+    private static final String SYSTEM_PROMPT =
+            "你是“掌卦”的《周易》解卦助手。最终回答只输出面向用户的结论，不得在最终回答中展示、复述或暗示内部思考过程、分析草稿、reasoning、thinking 或 <think> 标签；若 API 提供独立 reasoning 字段，客户端会另行折叠展示。"
+            + "解读以传统《周易》卦义为参考，语言自然、克制、具体，不故弄玄虚，不使用绝对预言式措辞，也不要逐段复述用户已经看到的卦象数据。"
+            + "输出固定为四部分：①卦意：2至3句话；②动爻：仅有动爻时用2至4句话；③变卦：1至2句话；④建议：2至3条简短可执行建议。"
+            + "全文原则上控制在300至450个中文字符，最多不超过500个中文字符。医疗、法律、投资等高风险事项仅作传统文化娱乐参考，不替代专业判断。";
+
     interface StreamListener {
-        void onDelta(String delta);
+        void onAnswerDelta(String delta);
+        void onReasoningDelta(String delta, boolean summaryOnly);
+    }
+
+    private static final class ChunkParts {
+        final String answer;
+        final String reasoning;
+        final boolean reasoningSummary;
+
+        ChunkParts(String answer, String reasoning, boolean reasoningSummary) {
+            this.answer = answer == null ? "" : answer;
+            this.reasoning = reasoning == null ? "" : reasoning;
+            this.reasoningSummary = reasoningSummary;
+        }
+    }
+
+    /** Splits compatible endpoints that place <think>...</think> inside content. */
+    private static final class InlineThinkingRouter {
+        private String carry = "";
+        private boolean inThinking = false;
+
+        void accept(String chunk, StringBuilder answer, StreamListener listener) {
+            if (chunk == null || chunk.isEmpty()) return;
+            String data = carry + chunk;
+            carry = "";
+            int pos = 0;
+            while (pos < data.length()) {
+                String tag = inThinking ? "</think>" : "<think>";
+                int found = indexOfIgnoreCase(data, tag, pos);
+                if (found >= 0) {
+                    emit(data.substring(pos, found), answer, listener);
+                    pos = found + tag.length();
+                    inThinking = !inThinking;
+                    continue;
+                }
+                int keep = trailingTagPrefix(data.substring(pos), tag);
+                int end = data.length() - keep;
+                if (end > pos) emit(data.substring(pos, end), answer, listener);
+                if (keep > 0) carry = data.substring(end);
+                break;
+            }
+        }
+
+        void finish(StringBuilder answer, StreamListener listener) {
+            if (!carry.isEmpty()) emit(carry, answer, listener);
+            carry = "";
+        }
+
+        private void emit(String text, StringBuilder answer, StreamListener listener) {
+            if (text == null || text.isEmpty()) return;
+            if (inThinking) {
+                if (listener != null) listener.onReasoningDelta(text, false);
+            } else {
+                answer.append(text);
+                if (listener != null) listener.onAnswerDelta(text);
+            }
+        }
+
+        private static int trailingTagPrefix(String text, String tag) {
+            int max = Math.min(tag.length() - 1, text.length());
+            for (int len = max; len > 0; len--) {
+                if (tag.regionMatches(true, 0, text, text.length() - len, len)) return len;
+            }
+            return 0;
+        }
     }
 
     private AiClient() {}
@@ -26,9 +97,9 @@ final class AiClient {
     }
 
     /**
-     * Streams model text as it arrives. Chat Completions is parsed from choices[].delta,
-     * while Responses API is parsed from response.output_text.delta SSE events.
-     * The complete text is also returned after the stream finishes.
+     * Streams answer text and provider-supplied reasoning as two separate channels.
+     * Only answer deltas become the final result. Reasoning is optional and is intended
+     * for an expandable UI; OpenAI normally exposes a reasoning summary rather than raw CoT.
      */
     static String interpretStream(AiSettingsStore.Settings s, String prompt, StreamListener listener) throws Exception {
         String path = AiSettingsStore.MODE_CHAT.equals(s.mode) ? "/chat/completions" : "/responses";
@@ -43,13 +114,22 @@ final class AiClient {
         body.put("stream", true);
         if (AiSettingsStore.MODE_CHAT.equals(s.mode)) {
             JSONArray messages = new JSONArray();
-            messages.put(new JSONObject()
-                    .put("role", "system")
-                    .put("content", "你是《周易》传统文化解读助手。解释应克制、具体、清楚，不故弄玄虚，不把卦象描述为确定的现实预测；遇到医疗、法律、投资等高风险事项，应明确卦象不能替代专业判断。"));
+            messages.put(new JSONObject().put("role", "system").put("content", SYSTEM_PROMPT));
             messages.put(new JSONObject().put("role", "user").put("content", prompt));
             body.put("messages", messages);
+            // Keep compatible chat endpoints from producing pages of text. DeepSeek counts
+            // reasoning_content toward max_tokens, so leave enough room for a concise answer.
+            body.put("max_tokens", 2000);
+            if (AiSettingsStore.PROVIDER_GEMINI.equals(s.provider)) {
+                body.put("reasoning_effort", "low");
+            }
         } else {
-            body.put("input", "你是《周易》传统文化解读助手。解释应克制、具体、清楚，不故弄玄虚，不把卦象描述为确定的现实预测；遇到医疗、法律、投资等高风险事项，应明确卦象不能替代专业判断。\n\n" + prompt);
+            body.put("input", SYSTEM_PROMPT + "\n\n" + prompt);
+            body.put("max_output_tokens", 1400);
+            if (AiSettingsStore.PROVIDER_OPENAI.equals(s.provider) && isOpenAiReasoningModel(s.model)) {
+                body.put("reasoning", new JSONObject().put("effort", "low").put("summary", "auto"));
+                body.put("text", new JSONObject().put("verbosity", "low"));
+            }
         }
 
         writeJson(conn, body);
@@ -60,7 +140,8 @@ final class AiClient {
             throw new Exception(errorMessage(code, raw));
         }
 
-        StringBuilder full = new StringBuilder();
+        StringBuilder answer = new StringBuilder();
+        InlineThinkingRouter inlineRouter = new InlineThinkingRouter();
         boolean sawSse = false;
         try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
             String line;
@@ -87,34 +168,36 @@ final class AiClient {
                         throw new Exception(message);
                     }
 
-                    String delta = AiSettingsStore.MODE_CHAT.equals(s.mode)
-                            ? chatDelta(event) : responsesDelta(event);
-                    if (!delta.isEmpty()) {
-                        full.append(delta);
-                        if (listener != null) listener.onDelta(delta);
+                    ChunkParts parts = AiSettingsStore.MODE_CHAT.equals(s.mode)
+                            ? chatParts(event) : responsesParts(event);
+                    if (!parts.reasoning.isEmpty() && listener != null) {
+                        listener.onReasoningDelta(parts.reasoning, parts.reasoningSummary);
+                    }
+                    if (!parts.answer.isEmpty()) {
+                        inlineRouter.accept(parts.answer, answer, listener);
                         continue;
                     }
 
-                    // Some compatible endpoints ignore stream=true and return one normal
-                    // JSON response. Handle that without forcing the user to change mode.
+                    // Some compatible endpoints ignore stream=true and return one normal JSON response.
                     if (!sawSse) {
-                        String finalText = AiSettingsStore.MODE_CHAT.equals(s.mode)
-                                ? parseChat(payload) : parseResponses(payload);
-                        if (!finalText.isEmpty()) {
-                            full.append(finalText);
-                            if (listener != null) listener.onDelta(finalText);
+                        ChunkParts finalParts = AiSettingsStore.MODE_CHAT.equals(s.mode)
+                                ? parseChatParts(payload) : parseResponsesParts(payload);
+                        if (!finalParts.reasoning.isEmpty() && listener != null) {
+                            listener.onReasoningDelta(finalParts.reasoning, finalParts.reasoningSummary);
                         }
+                        inlineRouter.accept(finalParts.answer, answer, listener);
                     }
                 } catch (org.json.JSONException ignored) {
                     // Ignore non-JSON SSE metadata. Actual API errors remain surfaced above.
                 }
             }
+            inlineRouter.finish(answer, listener);
         } finally {
             conn.disconnect();
         }
 
-        String result = full.toString().trim();
-        if (result.isEmpty()) throw new Exception("API 返回成功，但没有可显示的文本内容");
+        String result = answer.toString().trim();
+        if (result.isEmpty()) throw new Exception("API 返回成功，但没有可显示的最终解读");
         return result;
     }
 
@@ -140,14 +223,100 @@ final class AiClient {
         return ids;
     }
 
-    private static String chatDelta(JSONObject root) {
+    private static ChunkParts chatParts(JSONObject root) {
         JSONArray choices = root.optJSONArray("choices");
-        if (choices == null || choices.length() == 0) return "";
+        if (choices == null || choices.length() == 0) return new ChunkParts("", "", false);
         JSONObject choice = choices.optJSONObject(0);
-        if (choice == null) return "";
+        if (choice == null) return new ChunkParts("", "", false);
         JSONObject delta = choice.optJSONObject("delta");
-        if (delta == null) return choice.optString("text", "");
-        Object content = delta.opt("content");
+        if (delta == null) return new ChunkParts(choice.optString("text", ""), "", false);
+
+        String reasoning = firstNonEmpty(delta.optString("reasoning_content", ""),
+                delta.optString("reasoning", ""), delta.optString("thinking", ""));
+        String answer = contentText(delta.opt("content"));
+        return new ChunkParts(answer, reasoning, false);
+    }
+
+    private static ChunkParts responsesParts(JSONObject event) {
+        String type = event.optString("type", "");
+        if ("response.output_text.delta".equals(type)) {
+            return new ChunkParts(event.optString("delta", ""), "", false);
+        }
+        if ("response.reasoning_summary_text.delta".equals(type)) {
+            return new ChunkParts("", event.optString("delta", ""), true);
+        }
+        if ("response.reasoning_text.delta".equals(type)) {
+            return new ChunkParts("", event.optString("delta", ""), false);
+        }
+        String lower = type.toLowerCase(Locale.ROOT);
+        if ((lower.contains("reasoning") || lower.contains("thinking"))
+                && lower.endsWith(".delta") && event.has("delta")) {
+            return new ChunkParts("", event.optString("delta", ""), lower.contains("summary"));
+        }
+        // Deliberately do not treat arbitrary *.delta events as answer text.
+        return new ChunkParts("", "", false);
+    }
+
+    private static ChunkParts parseChatParts(String raw) throws Exception {
+        JSONObject root = new JSONObject(raw);
+        JSONArray choices = root.optJSONArray("choices");
+        if (choices != null && choices.length() > 0) {
+            JSONObject msg = choices.getJSONObject(0).optJSONObject("message");
+            if (msg != null) {
+                String answer = contentText(msg.opt("content"));
+                String reasoning = firstNonEmpty(msg.optString("reasoning_content", ""),
+                        msg.optString("reasoning", ""), msg.optString("thinking", ""));
+                return new ChunkParts(answer, reasoning, false);
+            }
+        }
+        throw new Exception("API 返回成功，但没有可显示的文本内容");
+    }
+
+    private static ChunkParts parseResponsesParts(String raw) throws Exception {
+        JSONObject root = new JSONObject(raw);
+        String direct = root.optString("output_text", "");
+        StringBuilder answer = new StringBuilder();
+        StringBuilder reasoning = new StringBuilder();
+        boolean summaryOnly = true;
+        if (!direct.trim().isEmpty()) answer.append(direct.trim());
+
+        JSONArray output = root.optJSONArray("output");
+        if (output != null) {
+            for (int i = 0; i < output.length(); i++) {
+                JSONObject item = output.optJSONObject(i);
+                if (item == null) continue;
+                String type = item.optString("type", "");
+                if ("reasoning".equals(type)) {
+                    JSONArray summary = item.optJSONArray("summary");
+                    if (summary != null) {
+                        for (int j = 0; j < summary.length(); j++) {
+                            JSONObject part = summary.optJSONObject(j);
+                            if (part != null) appendSeparated(reasoning, part.optString("text", ""));
+                        }
+                    }
+                    String rawReasoning = item.optString("reasoning_content", "");
+                    if (!rawReasoning.isEmpty()) {
+                        appendSeparated(reasoning, rawReasoning);
+                        summaryOnly = false;
+                    }
+                    continue;
+                }
+                JSONArray content = item.optJSONArray("content");
+                if (content == null) continue;
+                for (int j = 0; j < content.length(); j++) {
+                    JSONObject part = content.optJSONObject(j);
+                    if (part == null) continue;
+                    if ("output_text".equals(part.optString("type")) || part.has("text")) {
+                        appendSeparated(answer, part.optString("text", ""));
+                    }
+                }
+            }
+        }
+        if (answer.length() == 0) throw new Exception("API 返回成功，但没有可显示的文本内容");
+        return new ChunkParts(answer.toString().trim(), reasoning.toString().trim(), summaryOnly);
+    }
+
+    private static String contentText(Object content) {
         if (content instanceof String) return (String) content;
         if (content instanceof JSONArray) {
             StringBuilder sb = new StringBuilder();
@@ -163,20 +332,16 @@ final class AiClient {
         return "";
     }
 
-    private static String responsesDelta(JSONObject event) {
-        String type = event.optString("type", "");
-        if ("response.output_text.delta".equals(type)) return event.optString("delta", "");
-        // A few OpenAI-compatible implementations emit a generic text delta while still
-        // using the Responses-shaped event envelope.
-        if (type.endsWith(".delta") && event.has("delta")) return event.optString("delta", "");
-        return "";
-    }
-
     private static boolean looksLikeTextModel(String id) {
         String x = id.toLowerCase();
         return !x.contains("embedding") && !x.contains("whisper") && !x.contains("tts")
                 && !x.contains("image") && !x.contains("audio") && !x.contains("realtime")
                 && !x.contains("moderation") && !x.contains("sora") && !x.contains("transcribe");
+    }
+
+    private static boolean isOpenAiReasoningModel(String model) {
+        String x = model == null ? "" : model.toLowerCase(Locale.ROOT);
+        return x.startsWith("gpt-5") || x.startsWith("o1") || x.startsWith("o3") || x.startsWith("o4");
     }
 
     private static String apiUrl(String endpoint, String path) {
@@ -200,58 +365,23 @@ final class AiClient {
         try (OutputStream out = conn.getOutputStream()) { out.write(bytes); }
     }
 
-    private static String parseChat(String raw) throws Exception {
-        JSONObject root = new JSONObject(raw);
-        JSONArray choices = root.optJSONArray("choices");
-        if (choices != null && choices.length() > 0) {
-            JSONObject msg = choices.getJSONObject(0).optJSONObject("message");
-            if (msg != null) {
-                Object content = msg.opt("content");
-                if (content instanceof String && !((String) content).trim().isEmpty()) return ((String) content).trim();
-                if (content instanceof JSONArray) {
-                    StringBuilder sb = new StringBuilder();
-                    JSONArray arr = (JSONArray) content;
-                    for (int i = 0; i < arr.length(); i++) {
-                        JSONObject item = arr.optJSONObject(i);
-                        if (item != null) {
-                            String t = item.optString("text", "");
-                            if (!t.isEmpty()) sb.append(t);
-                        }
-                    }
-                    if (sb.length() > 0) return sb.toString().trim();
-                }
-            }
-        }
-        throw new Exception("API 返回成功，但没有可显示的文本内容");
+    private static String firstNonEmpty(String... values) {
+        for (String value : values) if (value != null && !value.isEmpty()) return value;
+        return "";
     }
 
-    private static String parseResponses(String raw) throws Exception {
-        JSONObject root = new JSONObject(raw);
-        String direct = root.optString("output_text", "");
-        if (!direct.trim().isEmpty()) return direct.trim();
-        JSONArray output = root.optJSONArray("output");
-        StringBuilder sb = new StringBuilder();
-        if (output != null) {
-            for (int i = 0; i < output.length(); i++) {
-                JSONObject item = output.optJSONObject(i);
-                if (item == null) continue;
-                JSONArray content = item.optJSONArray("content");
-                if (content == null) continue;
-                for (int j = 0; j < content.length(); j++) {
-                    JSONObject part = content.optJSONObject(j);
-                    if (part == null) continue;
-                    if ("output_text".equals(part.optString("type")) || part.has("text")) {
-                        String t = part.optString("text", "");
-                        if (!t.isEmpty()) {
-                            if (sb.length() > 0) sb.append('\n');
-                            sb.append(t);
-                        }
-                    }
-                }
-            }
+    private static void appendSeparated(StringBuilder sb, String text) {
+        if (text == null || text.isEmpty()) return;
+        if (sb.length() > 0) sb.append('\n');
+        sb.append(text);
+    }
+
+    private static int indexOfIgnoreCase(String text, String target, int from) {
+        int max = text.length() - target.length();
+        for (int i = Math.max(0, from); i <= max; i++) {
+            if (text.regionMatches(true, i, target, 0, target.length())) return i;
         }
-        if (sb.length() == 0) throw new Exception("API 返回成功，但没有可显示的文本内容");
-        return sb.toString().trim();
+        return -1;
     }
 
     private static String errorMessage(int code, String raw) {

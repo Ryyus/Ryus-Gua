@@ -169,6 +169,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         private final RectF experienceButton = new RectF();
         private final RectF backButton = new RectF();
         private final RectF clearButton = new RectF();
+        private final RectF reasoningToggleButton = new RectF();
         private final String[] currentCoins = {"·", "·", "·"};
         private final ZhouYiRepository zhouYi;
         private final ArrayList<HistoryHit> historyHits = new ArrayList<>();
@@ -185,6 +186,9 @@ public class MainActivity extends Activity implements SensorEventListener {
         private boolean loadedFromHistory = false;
         private boolean aiLoading = false;
         private String aiText = "";
+        private String aiReasoning = "";
+        private boolean aiReasoningExpanded = false;
+        private boolean aiReasoningSummaryOnly = true;
         private String aiError = "";
         private String aiModel = "";
         private int bootStep = 0;
@@ -470,12 +474,12 @@ public class MainActivity extends Activity implements SensorEventListener {
             paint.setStyle(Paint.Style.FILL); paint.setColor(GOLD);
             c.drawRect(barL+dp(2), barY+dp(2), barL+dp(2)+(barR-barL-dp(4))*bootSweep, barY+dp(6), paint);
             text(c, bootStep < 4 ? "INITIALIZING..." : "READY", cx, barY+dp(28), 8, bootStep<4?MUTED:GOLD, Paint.Align.CENTER, true);
-            text(c, "v0.9.1 / Ryu\'s Gua", cx, h-dp(36), 7.5f, MUTED, Paint.Align.CENTER, false);
+            text(c, "v0.9.2 / Ryu\'s Gua", cx, h-dp(36), 7.5f, MUTED, Paint.Align.CENTER, false);
         }
 
         private void drawHeader(Canvas c, float w) {
             text(c, "掌卦", dp(20), dp(41), 26, FG, Paint.Align.LEFT, true);
-            text(c, "RYU\'S GUA / 0.9.1", dp(20), dp(61), 9, MUTED, Paint.Align.LEFT, false);
+            text(c, "RYU\'S GUA / 0.9.2", dp(20), dp(61), 9, MUTED, Paint.Align.LEFT, false);
             text(c, "易", w - dp(22), dp(43), 25, GOLD, Paint.Align.RIGHT, true);
             line(c, dp(20), dp(75), w - dp(20), dp(75), GOLD, 1);
         }
@@ -774,17 +778,28 @@ public class MainActivity extends Activity implements SensorEventListener {
             c.save();
             c.clipRect(0, dp(126), w, h - dp(82));
             float y = dp(151) - scrollOffset;
+            String statusTitle;
             if (aiLoading) {
-                text(c, aiText.isEmpty() ? "正在连接 AI……" : "AI 正在解卦 · 流式输出", dp(22), y, 13, GOLD, Paint.Align.LEFT, true);
+                if (!aiText.isEmpty()) statusTitle = "AI 正在解卦 · 流式输出";
+                else if (!aiReasoning.isEmpty()) statusTitle = "AI 正在思考…";
+                else statusTitle = "正在连接 AI……";
+                text(c, statusTitle, dp(22), y, 13, GOLD, Paint.Align.LEFT, true);
                 y += dp(27);
-                text(c, "模型：" + aiModel, dp(22), y, 9.5f, MUTED, Paint.Align.LEFT, false);
-                y += dp(28);
+            }
+            text(c, "模型：" + aiModel, dp(22), y, 9.5f, MUTED, Paint.Align.LEFT, false);
+            y += dp(27);
+
+            y = drawAiReasoning(c, w, y);
+
+            if (aiLoading) {
                 if (aiText.isEmpty()) {
-                    y = wrapped(c, "正在等待首段文字。请求会直接从此设备发往你设置的 API 服务。", dp(22), y,
-                            w - dp(44), 10, MUTED, dp(18), false) + dp(20);
+                    String waiting = aiReasoning.isEmpty()
+                            ? "正在等待首段内容。请求会直接从此设备发往你设置的 API 服务。"
+                            : "思考过程已收到，正在等待最终解读。思考默认折叠，可点击上方查看。";
+                    y = wrapped(c, waiting, dp(22), y, w - dp(44), 10, MUTED, dp(18), false) + dp(20);
                 } else {
                     y = wrapped(c, aiText, dp(22), y, w - dp(44), 11.5f, FG, dp(21), false) + dp(20);
-                    y = wrapped(c, "内容仍在生成中…", dp(22), y, w - dp(44), 9.2f, MUTED, dp(17), false) + dp(18);
+                    y = wrapped(c, "最终解读仍在生成中…", dp(22), y, w - dp(44), 9.2f, MUTED, dp(17), false) + dp(18);
                 }
             } else if (!aiError.isEmpty()) {
                 text(c, "请求失败", dp(22), y, 13, RED, Paint.Align.LEFT, true);
@@ -793,8 +808,6 @@ public class MainActivity extends Activity implements SensorEventListener {
                 y = wrapped(c, "可检查 API Key、模型 ID、接口模式与余额/额度后重试。", dp(22), y,
                         w - dp(44), 9.5f, MUTED, dp(18), false) + dp(20);
             } else {
-                text(c, "模型：" + aiModel, dp(22), y, 9.5f, MUTED, Paint.Align.LEFT, false);
-                y += dp(28);
                 y = wrapped(c, aiText.isEmpty() ? "暂无解读" : aiText, dp(22), y,
                         w - dp(44), 11.5f, FG, dp(21), false) + dp(24);
                 y = wrapped(c, "AI 解读与卦象均只作传统文化与娱乐参考，不构成医疗、法律、投资等专业建议。", dp(22), y,
@@ -807,6 +820,21 @@ public class MainActivity extends Activity implements SensorEventListener {
             auxRightButton.set(w / 2f + dp(5), h - dp(69), w - dp(20), h - dp(15));
             button(c, auxLeftButton, "复制解读", FG, false, 10.5f);
             button(c, auxRightButton, aiLoading ? "请求中…" : "重新解卦", GOLD, true, 10.5f);
+        }
+
+        private float drawAiReasoning(Canvas c, float w, float y) {
+            if (aiReasoning == null || aiReasoning.trim().isEmpty()) {
+                reasoningToggleButton.setEmpty();
+                return y;
+            }
+            String kind = aiReasoningSummaryOnly ? "思考过程（摘要）" : "思考过程";
+            reasoningToggleButton.set(dp(22), y - dp(4), w - dp(22), y + dp(30));
+            button(c, reasoningToggleButton, kind + (aiReasoningExpanded ? "  ▾" : "  ▸"), MUTED, false, 9.2f);
+            y += dp(43);
+            if (aiReasoningExpanded) {
+                y = wrapped(c, aiReasoning, dp(26), y, w - dp(52), 9.5f, MUTED, dp(18), false) + dp(17);
+            }
+            return y;
         }
 
         private void drawMiniStack(Canvas c, float cx, float cy, int[] source) {
@@ -887,6 +915,12 @@ public class MainActivity extends Activity implements SensorEventListener {
                         if (state == State.DETAIL || state == State.AI) state = State.RESULT;
                         else state = State.IDLE;
                         scrollOffset = 0; postInvalidateOnAnimation(); return true;
+                    }
+                    if (!dragging && state == State.AI && reasoningToggleButton.contains(x, y) && !aiReasoning.isEmpty()) {
+                        aiReasoningExpanded = !aiReasoningExpanded;
+                        haptic(HapticFeedbackConstants.CLOCK_TICK);
+                        postInvalidateOnAnimation();
+                        return true;
                     }
                     if (!dragging && state == State.AI && clearButton.contains(x, y)) {
                         showSettingsDialog(false); return true;
@@ -1225,7 +1259,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         private String aiPrompt() {
-            return resultText() + "\n\n请按《周易》传统卦象思路，先解释本卦、动爻与变卦之间的关系，再给出克制、具体、不故弄玄虚的解读。将其作为传统文化娱乐参考，不要把卦象描述成确定的现实预测。";
+            return resultText() + "\n\n请直接生成最终解读，不要复述上面的卦象数据。按“卦意 / 动爻（如有） / 变卦 / 建议”四部分输出；全文控制在300至450个中文字符，最多不超过500个中文字符。最终回答中不要包含思考过程、分析草稿、reasoning、thinking 或 <think> 标签。";
         }
 
         private void copyResult() {
@@ -1249,6 +1283,10 @@ public class MainActivity extends Activity implements SensorEventListener {
             aiLoading = true;
             aiError = "";
             aiText = "";
+            aiReasoning = "";
+            aiReasoningExpanded = false;
+            aiReasoningSummaryOnly = true;
+            reasoningToggleButton.setEmpty();
             aiModel = settings.model;
             state = State.AI;
             scrollOffset = 0;
@@ -1256,19 +1294,33 @@ public class MainActivity extends Activity implements SensorEventListener {
             postInvalidateOnAnimation();
 
             new Thread(() -> {
-                final StringBuilder streamed = new StringBuilder();
+                final StringBuilder streamedAnswer = new StringBuilder();
+                final StringBuilder streamedReasoning = new StringBuilder();
                 try {
-                    String text = AiClient.interpretStream(settings, aiPrompt(), delta -> {
-                        synchronized (streamed) { streamed.append(delta); }
-                        handler.post(() -> {
-                            synchronized (streamed) { aiText = streamed.toString(); }
-                            aiError = "";
-                            postInvalidateOnAnimation();
-                        });
+                    String text = AiClient.interpretStream(settings, aiPrompt(), new AiClient.StreamListener() {
+                        @Override public void onAnswerDelta(String delta) {
+                            synchronized (streamedAnswer) { appendCapped(streamedAnswer, delta, 12000); }
+                            handler.post(() -> {
+                                synchronized (streamedAnswer) { aiText = streamedAnswer.toString(); }
+                                aiError = "";
+                                postInvalidateOnAnimation();
+                            });
+                        }
+
+                        @Override public void onReasoningDelta(String delta, boolean summaryOnly) {
+                            synchronized (streamedReasoning) { appendCapped(streamedReasoning, delta, 12000); }
+                            handler.post(() -> {
+                                synchronized (streamedReasoning) { aiReasoning = streamedReasoning.toString(); }
+                                if (!summaryOnly) aiReasoningSummaryOnly = false;
+                                aiError = "";
+                                postInvalidateOnAnimation();
+                            });
+                        }
                     });
                     handler.post(() -> {
                         aiLoading = false;
                         aiText = text;
+                        synchronized (streamedReasoning) { aiReasoning = streamedReasoning.toString(); }
                         aiError = "";
                         haptic(HapticFeedbackConstants.CONFIRM);
                         postInvalidateOnAnimation();
@@ -1277,12 +1329,20 @@ public class MainActivity extends Activity implements SensorEventListener {
                     String message = ex.getMessage() == null ? ex.toString() : ex.getMessage();
                     handler.post(() -> {
                         aiLoading = false;
-                        synchronized (streamed) { if (!streamed.toString().trim().isEmpty()) aiText = streamed.toString(); }
+                        synchronized (streamedAnswer) { if (!streamedAnswer.toString().trim().isEmpty()) aiText = streamedAnswer.toString(); }
+                        synchronized (streamedReasoning) { aiReasoning = streamedReasoning.toString(); }
                         aiError = message;
                         postInvalidateOnAnimation();
                     });
                 }
-            }, "zhanggua-ai-stream").start();
+            }, "ryus-gua-ai-stream").start();
+        }
+
+        private static void appendCapped(StringBuilder target, String delta, int maxChars) {
+            if (delta == null || delta.isEmpty() || target.length() >= maxChars) return;
+            int room = maxChars - target.length();
+            if (delta.length() <= room) target.append(delta);
+            else target.append(delta, 0, room).append("\n…思考内容过长，已截断显示");
         }
 
         private void copyAiResult() {
@@ -1314,7 +1374,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             heading.setText("掌卦设置"); heading.setTextSize(22); heading.setTextColor(FG);
             heading.setTypeface(Typeface.DEFAULT_BOLD); root.addView(heading);
             TextView sub = new TextView(ctx);
-            sub.setText("RYU'S GUA / SETTINGS / v0.9.1"); sub.setTextSize(10); sub.setTextColor(MUTED);
+            sub.setText("RYU'S GUA / SETTINGS / v0.9.2"); sub.setTextSize(10); sub.setTextColor(MUTED);
             root.addView(sub);
             TextView author = new TextView(ctx);
             author.setText("作者 · Ryyus"); author.setTextSize(9.5f); author.setTextColor(MUTED);
@@ -1330,7 +1390,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             TextView aiSummaryView = (TextView) ai.getChildAt(1);
             ai.setOnClickListener(v -> showAiSettingsPanel(false, () -> aiSummaryView.setText(aiSettingsSummary(AiSettingsStore.load(ctx)))));
 
-            LinearLayout update = settingsCard(ctx, "版本更新", "当前 v0.9.1 · 点击检查新版本");
+            LinearLayout update = settingsCard(ctx, "版本更新", "当前 v0.9.2 · 点击检查新版本");
             root.addView(update);
             update.setOnClickListener(v -> UpdateChecker.check((Activity) ctx, true));
 
