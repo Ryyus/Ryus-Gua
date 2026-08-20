@@ -450,7 +450,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         private void drawHeader(Canvas c, float w) {
             text(c, "掌卦", dp(20), dp(41), 26, FG, Paint.Align.LEFT, true);
-            text(c, "ZHANG · GUA / 0.8", dp(20), dp(61), 9, MUTED, Paint.Align.LEFT, false);
+            text(c, "ZHANG · GUA / 0.9", dp(20), dp(61), 9, MUTED, Paint.Align.LEFT, false);
             text(c, "易", w - dp(22), dp(43), 25, GOLD, Paint.Align.RIGHT, true);
             line(c, dp(20), dp(75), w - dp(20), dp(75), GOLD, 1);
         }
@@ -731,12 +731,17 @@ public class MainActivity extends Activity implements SensorEventListener {
             c.clipRect(0, dp(126), w, h - dp(82));
             float y = dp(151) - scrollOffset;
             if (aiLoading) {
-                text(c, "正在请 AI 读卦……", dp(22), y, 13, FG, Paint.Align.LEFT, true);
-                y += dp(28);
+                text(c, aiText.isEmpty() ? "正在连接 AI……" : "AI 正在解卦 · 流式输出", dp(22), y, 13, GOLD, Paint.Align.LEFT, true);
+                y += dp(27);
                 text(c, "模型：" + aiModel, dp(22), y, 9.5f, MUTED, Paint.Align.LEFT, false);
-                y += dp(30);
-                y = wrapped(c, "请求会直接从此设备发往你设置的 API 服务。请不要关闭本页。", dp(22), y,
-                        w - dp(44), 10, MUTED, dp(18), false) + dp(20);
+                y += dp(28);
+                if (aiText.isEmpty()) {
+                    y = wrapped(c, "正在等待首段文字。请求会直接从此设备发往你设置的 API 服务。", dp(22), y,
+                            w - dp(44), 10, MUTED, dp(18), false) + dp(20);
+                } else {
+                    y = wrapped(c, aiText, dp(22), y, w - dp(44), 11.5f, FG, dp(21), false) + dp(20);
+                    y = wrapped(c, "内容仍在生成中…", dp(22), y, w - dp(44), 9.2f, MUTED, dp(17), false) + dp(18);
+                }
             } else if (!aiError.isEmpty()) {
                 text(c, "请求失败", dp(22), y, 13, RED, Paint.Align.LEFT, true);
                 y += dp(28);
@@ -1132,27 +1137,33 @@ public class MainActivity extends Activity implements SensorEventListener {
             postInvalidateOnAnimation();
 
             new Thread(() -> {
+                final StringBuilder streamed = new StringBuilder();
                 try {
-                    String text = AiClient.interpret(settings, aiPrompt());
-                    ((Activity) getContext()).runOnUiThread(() -> {
+                    String text = AiClient.interpretStream(settings, aiPrompt(), delta -> {
+                        synchronized (streamed) { streamed.append(delta); }
+                        handler.post(() -> {
+                            synchronized (streamed) { aiText = streamed.toString(); }
+                            aiError = "";
+                            postInvalidateOnAnimation();
+                        });
+                    });
+                    handler.post(() -> {
                         aiLoading = false;
                         aiText = text;
                         aiError = "";
-                        scrollOffset = 0;
                         haptic(HapticFeedbackConstants.CONFIRM);
                         postInvalidateOnAnimation();
                     });
                 } catch (Exception ex) {
                     String message = ex.getMessage() == null ? ex.toString() : ex.getMessage();
-                    ((Activity) getContext()).runOnUiThread(() -> {
+                    handler.post(() -> {
                         aiLoading = false;
-                        aiText = "";
+                        synchronized (streamed) { if (!streamed.toString().trim().isEmpty()) aiText = streamed.toString(); }
                         aiError = message;
-                        scrollOffset = 0;
                         postInvalidateOnAnimation();
                     });
                 }
-            }, "zhanggua-ai").start();
+            }, "zhanggua-ai-stream").start();
         }
 
         private void copyAiResult() {
@@ -1184,7 +1195,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             heading.setText("掌卦设置"); heading.setTextSize(22); heading.setTextColor(FG);
             heading.setTypeface(Typeface.DEFAULT_BOLD); root.addView(heading);
             TextView sub = new TextView(ctx);
-            sub.setText("SETTINGS / v0.8"); sub.setTextSize(10); sub.setTextColor(MUTED);
+            sub.setText("SETTINGS / v0.9"); sub.setTextSize(10); sub.setTextColor(MUTED);
             sub.setPadding(0, 0, 0, (int)(12*density)); root.addView(sub);
 
             LinearLayout interaction = settingsCard(ctx, "交互与动画",
@@ -1199,7 +1210,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             root.addView(ai);
             ai.setOnClickListener(v -> showAiSettingsPanel(false));
 
-            LinearLayout update = settingsCard(ctx, "版本更新", "当前 v0.8 · 点击检查新版本");
+            LinearLayout update = settingsCard(ctx, "版本更新", "当前 v0.9 · 点击检查新版本");
             root.addView(update);
             update.setOnClickListener(v -> UpdateChecker.check((Activity) ctx, true));
 
@@ -1271,14 +1282,14 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         private void showAiSettingsPanel(boolean startAiAfterSave) {
             final Context ctx = getContext();
-            final AiSettingsStore.Settings saved = AiSettingsStore.load(ctx);
+            final AiSettingsStore.Settings[] current = {AiSettingsStore.load(ctx)};
             final float density = getResources().getDisplayMetrics().density;
             ScrollView scroll = new ScrollView(ctx);
             LinearLayout box = new LinearLayout(ctx); box.setOrientation(LinearLayout.VERTICAL);
             box.setPadding((int)(16*density), (int)(6*density), (int)(16*density), (int)(10*density)); scroll.addView(box);
 
             TextView warning = new TextView(ctx);
-            warning.setText("服务商预设会自动填写兼容接口与推荐模型；模型 ID 和接口仍可手动修改。API Key 只在本机加密保存。");
+            warning.setText("每个服务商现在独立保存 API Key、接口、模型与协议。切换服务商会读取该服务商自己的配置；API Key 仍使用 Android Keystore 加密。");
             warning.setTextColor(MUTED); warning.setTextSize(11.5f); warning.setPadding(0,0,0,(int)(8*density)); box.addView(warning);
 
             Spinner provider = new Spinner(ctx);
@@ -1287,30 +1298,33 @@ public class MainActivity extends Activity implements SensorEventListener {
                     AiSettingsStore.PROVIDER_GEMINI, AiSettingsStore.PROVIDER_QWEN,
                     AiSettingsStore.PROVIDER_KIMI, AiSettingsStore.PROVIDER_CUSTOM};
             provider.setAdapter(new ArrayAdapter<>(ctx, android.R.layout.simple_spinner_dropdown_item, providerLabels));
-            provider.setSelection(providerIndex(saved.provider)); box.addView(provider);
+            provider.setSelection(providerIndex(current[0].provider)); box.addView(provider);
 
-            EditText endpoint = new EditText(ctx); endpoint.setHint("API 地址"); endpoint.setSingleLine(true); endpoint.setText(saved.endpoint); box.addView(endpoint);
-            EditText key = new EditText(ctx); key.setHint(saved.apiKey.isEmpty() ? "API Key" : "API Key（已保存；留空保持不变）");
+            EditText endpoint = new EditText(ctx); endpoint.setHint("API 地址"); endpoint.setSingleLine(true); endpoint.setText(current[0].endpoint); box.addView(endpoint);
+            EditText key = new EditText(ctx); key.setHint(current[0].apiKey.isEmpty() ? "API Key" : "API Key（此服务商已保存；留空保持不变）");
             key.setSingleLine(true); key.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD); box.addView(key);
-            EditText model = new EditText(ctx); model.setHint("模型 ID"); model.setSingleLine(true); model.setText(saved.model); box.addView(model);
+            EditText model = new EditText(ctx); model.setHint("模型 ID"); model.setSingleLine(true); model.setText(current[0].model); box.addView(model);
             Spinner mode = new Spinner(ctx);
             mode.setAdapter(new ArrayAdapter<>(ctx, android.R.layout.simple_spinner_dropdown_item, new String[]{"Responses API", "Chat Completions（兼容模式）"}));
-            mode.setSelection(AiSettingsStore.MODE_CHAT.equals(saved.mode) ? 1 : 0); box.addView(mode);
+            mode.setSelection(AiSettingsStore.MODE_CHAT.equals(current[0].mode) ? 1 : 0); box.addView(mode);
 
             provider.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
                 boolean first = true;
                 @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
                     String selected = providerValues[Math.max(0, Math.min(position, providerValues.length - 1))];
                     if (first) { first = false; return; }
-                    if (AiSettingsStore.PROVIDER_CUSTOM.equals(selected)) return;
-                    endpoint.setText(AiSettingsStore.providerEndpoint(selected)); model.setText(AiSettingsStore.providerModel(selected));
-                    mode.setSelection(AiSettingsStore.MODE_CHAT.equals(AiSettingsStore.providerMode(selected)) ? 1 : 0);
+                    current[0] = AiSettingsStore.loadProvider(ctx, selected);
+                    endpoint.setText(current[0].endpoint);
+                    model.setText(current[0].model);
+                    mode.setSelection(AiSettingsStore.MODE_CHAT.equals(current[0].mode) ? 1 : 0);
+                    key.setText("");
+                    key.setHint(current[0].apiKey.isEmpty() ? "API Key" : "API Key（此服务商已保存；留空保持不变）");
                 }
                 @Override public void onNothingSelected(android.widget.AdapterView<?> parent) {}
             });
 
             LinearLayout row = new LinearLayout(ctx); row.setOrientation(LinearLayout.HORIZONTAL);
-            Button models = new Button(ctx); models.setText("读取模型"); Button clear = new Button(ctx); clear.setText("清除 Key");
+            Button models = new Button(ctx); models.setText("读取模型"); Button clear = new Button(ctx); clear.setText("清除当前 Key");
             row.addView(models, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
             row.addView(clear, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1)); box.addView(row);
 
@@ -1318,12 +1332,15 @@ public class MainActivity extends Activity implements SensorEventListener {
                     .setPositiveButton(startAiAfterSave ? "保存并解卦" : "保存", null).setNegativeButton("取消", null).create();
 
             models.setOnClickListener(v -> {
-                String enteredKey = key.getText().toString().trim(); String effectiveKey = enteredKey.isEmpty() ? saved.apiKey : enteredKey;
+                String selected = providerValues[provider.getSelectedItemPosition()];
+                AiSettingsStore.Settings stored = AiSettingsStore.loadProvider(ctx, selected);
+                String enteredKey = key.getText().toString().trim();
+                String effectiveKey = enteredKey.isEmpty() ? stored.apiKey : enteredKey;
                 String endpointValue = AiSettingsStore.normalizeEndpoint(endpoint.getText().toString());
-                if (effectiveKey.isEmpty()) { Toast.makeText(ctx, "请先填写 API Key", Toast.LENGTH_SHORT).show(); return; }
+                if (effectiveKey.isEmpty()) { Toast.makeText(ctx, "请先填写此服务商的 API Key", Toast.LENGTH_SHORT).show(); return; }
                 if (!endpointValue.startsWith("https://")) { Toast.makeText(ctx, "接口地址必须使用 HTTPS", Toast.LENGTH_SHORT).show(); return; }
                 String modeValue = mode.getSelectedItemPosition() == 1 ? AiSettingsStore.MODE_CHAT : AiSettingsStore.MODE_RESPONSES;
-                AiSettingsStore.Settings temp = new AiSettingsStore.Settings(endpointValue, effectiveKey, model.getText().toString().trim(), modeValue, providerValues[provider.getSelectedItemPosition()]);
+                AiSettingsStore.Settings temp = new AiSettingsStore.Settings(endpointValue, effectiveKey, model.getText().toString().trim(), modeValue, selected);
                 models.setEnabled(false); models.setText("读取中…");
                 new Thread(() -> {
                     try {
@@ -1338,14 +1355,32 @@ public class MainActivity extends Activity implements SensorEventListener {
                     }
                 }, "zhanggua-models").start();
             });
-            clear.setOnClickListener(v -> { AiSettingsStore.clearApiKey(ctx); key.setText(""); key.setHint("API Key（已清除）"); Toast.makeText(ctx,"已清除本机保存的 API Key",Toast.LENGTH_SHORT).show(); });
+
+            clear.setOnClickListener(v -> {
+                String selected = providerValues[provider.getSelectedItemPosition()];
+                AiSettingsStore.clearApiKey(ctx, selected);
+                current[0] = AiSettingsStore.loadProvider(ctx, selected);
+                key.setText(""); key.setHint("API Key（当前服务商已清除）");
+                Toast.makeText(ctx,"已清除 " + providerLabel(selected) + " 的 API Key",Toast.LENGTH_SHORT).show();
+            });
+
             dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                String selected = providerValues[provider.getSelectedItemPosition()];
                 String modeValue=mode.getSelectedItemPosition()==1?AiSettingsStore.MODE_CHAT:AiSettingsStore.MODE_RESPONSES;
                 try {
-                    AiSettingsStore.save(ctx, endpoint.getText().toString(), key.getText().toString(), model.getText().toString(), modeValue, providerValues[provider.getSelectedItemPosition()]);
+                    AiSettingsStore.save(ctx, endpoint.getText().toString(), key.getText().toString(), model.getText().toString(), modeValue, selected);
                     AiSettingsStore.Settings now=AiSettingsStore.load(ctx);
-                    if(startAiAfterSave&&!now.isConfigured()){ Toast.makeText(ctx,"请填写并保存 API Key",Toast.LENGTH_SHORT).show(); return; }
-                    dialog.dismiss(); Toast.makeText(ctx,"AI 设置已保存",Toast.LENGTH_SHORT).show(); if(startAiAfterSave) requestAiReading(now);
+                    if (!selected.equals(now.provider)
+                            || !AiSettingsStore.normalizeEndpoint(endpoint.getText().toString()).equals(now.endpoint)
+                            || !model.getText().toString().trim().equals(now.model)
+                            || !modeValue.equals(now.mode)) {
+                        throw new IllegalStateException("保存后校验失败，请重试");
+                    }
+                    if(startAiAfterSave&&!now.isConfigured()){ Toast.makeText(ctx,"请填写并保存 " + providerLabel(selected) + " 的 API Key",Toast.LENGTH_SHORT).show(); return; }
+                    dialog.dismiss();
+                    Toast.makeText(ctx,providerLabel(selected) + " 设置已保存",Toast.LENGTH_SHORT).show();
+                    if(startAiAfterSave) requestAiReading(now);
+                    postInvalidateOnAnimation();
                 } catch(Exception ex){ Toast.makeText(ctx,ex.getMessage()==null?"保存失败":ex.getMessage(),Toast.LENGTH_LONG).show(); }
             }));
             dialog.show();
