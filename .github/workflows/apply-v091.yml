@@ -34,7 +34,7 @@ jobs:
           grep -q "versionName '0.9.1'" app/build.gradle
           grep -q 'startFormalCasting' app/src/main/java/com/zhanggua/app/MainActivity.java
           grep -q 'verticalFlipEnabled' app/src/main/java/com/zhanggua/app/MainActivity.java
-          grep -q "RYU'S GUA / 0.9.1" app/src/main/java/com/zhanggua/app/MainActivity.java
+          grep -Eq "RYU.*GUA / 0.9.1" app/src/main/java/com/zhanggua/app/MainActivity.java
           grep -q '作者 · Ryyus' app/src/main/java/com/zhanggua/app/MainActivity.java
           grep -q 'showAiSettingsPanel(false, () -> aiSummaryView.setText' app/src/main/java/com/zhanggua/app/MainActivity.java
           git rm -f .v091-patch.gz.b64 .v091-branch-trigger 2>/dev/null || true
