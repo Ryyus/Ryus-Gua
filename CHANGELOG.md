@@ -3,10 +3,10 @@
 ## 0.9.3
 - 中文：经典浮动动画延长到与物理飞出一致的约 1.08 秒；正式起卦会关闭设置并返回主界面；预设 AI 服务商 Endpoint 改为只读显示。
 - 中文：历史记录新增秒级时间、正式起卦标记、AI 解读持久化、PIN 固定与备注；30 条上限仅统计未固定记录。
-- 中文：新增 Android 6.0+ Legacy APK，标准 APK 继续支持 Android 8.0+。
+- 中文：新增 Android 6.0+ Legacy APK，标准 APK 继续支持 Android 8.0+；两者保持相同包名、版本号与正式签名身份。
 - English: Matched classic animation duration to the ~1.08 s physics animation; Formal Casting now exits Settings; preset AI endpoints are read-only.
 - English: History now stores second-level timestamps, Formal Casting metadata, AI results, pins, and notes; the 30-entry rolling limit applies only to unpinned entries.
-- English: Added an Android 6.0+ Legacy APK alongside the Android 8.0+ Standard APK.
+- English: Added an Android 6.0+ Legacy APK alongside the Android 8.0+ Standard APK; both keep the same package, version code, and release-signing identity.
 
 ## 0.9.2
 - Separated AI reasoning/thinking from the final interpretation stream; reasoning no longer leaks into the answer body.
