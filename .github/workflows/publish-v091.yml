@@ -1,0 +1,96 @@
+name: Publish Ryu's Gua v0.9.1 verified release
+
+on:
+  push:
+    branches: ["main"]
+    paths: [".v091-artifact-url"]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout clean public source
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download and verify signed artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL=$(tr -d '\r\n' < .v091-artifact-url)
+          curl -fL --retry 3 --retry-delay 2 "$URL" -o /tmp/ZhangGua-v0.9.1-verified.zip
+          mkdir -p /tmp/verified
+          unzip -q /tmp/ZhangGua-v0.9.1-verified.zip -d /tmp/verified
+          test -s /tmp/verified/ZhangGua-v0.9.1-release.apk
+          ACTUAL=$(sha256sum /tmp/verified/ZhangGua-v0.9.1-release.apk | awk '{print $1}')
+          EXPECTED='ec319f10ce93b64655cca16362b00159de857cdaeb9a63e75000f3d287dde88e'
+          test "$ACTUAL" = "$EXPECTED"
+          unzip -t /tmp/verified/ZhangGua-v0.9.1-release.apk >/dev/null
+          echo "APK_SHA256=$ACTUAL" >> "$GITHUB_ENV"
+
+      - name: Create clean source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/release-assets
+          cp /tmp/verified/ZhangGua-v0.9.1-release.apk /tmp/release-assets/ZhangGua-v0.9.1-release.apk
+          printf '%s  %s\n' "$APK_SHA256" 'ZhangGua-v0.9.1-release.apk' > /tmp/release-assets/sha256.txt
+          zip -qr /tmp/release-assets/Ryus-Gua-v0.9.1-source.zip . \
+            -x '.git/*' '.gradle/*' '**/build/*' 'local.properties' '.v091-*' '.github/workflows/publish-v091.yml'
+
+      - name: Publish v0.9.1 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view v0.9.1 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 && gh release delete v0.9.1 --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+          gh release create v0.9.1 \
+            /tmp/release-assets/ZhangGua-v0.9.1-release.apk \
+            /tmp/release-assets/Ryus-Gua-v0.9.1-source.zip \
+            /tmp/release-assets/sha256.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target main \
+            --title "柳之卦 · Ryu's Gua v0.9.1 · 掌卦 Android" \
+            --notes "v0.9.1：修复设置卡片摘要保存后不即时刷新；新增正式起卦（下一整分初爻，之后每 10 秒一爻，手动模式每个节点提醒且 3 秒无操作自动补掷）；新增可选垂直翻转动画；可见英文品牌统一为 Ryu's Gua，中文应用名继续为掌卦；设置页增加作者信息。APK SHA-256: $APK_SHA256"
+
+      - name: Publish update metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > update/latest.json <<EOF
+          {
+            "versionCode": 10,
+            "versionName": "0.9.1",
+            "title": "掌卦 v0.9.1 可用",
+            "notes": "修复设置摘要刷新；新增正式起卦定时六爻、手动3秒自动补掷、可选垂直翻转；英文品牌更新为 Ryu's Gua。",
+            "releasePage": "https://github.com/Ryyus/Ryus-Gua/releases/tag/v0.9.1",
+            "apkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v0.9.1/ZhangGua-v0.9.1-release.apk",
+            "sha256": "$APK_SHA256"
+          }
+          EOF
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add update/latest.json
+          git diff --cached --quiet || git commit -m 'Publish v0.9.1 update metadata'
+          git push origin main
+
+      - name: Verify public release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/public-v091 && mkdir -p /tmp/public-v091
+          gh release download v0.9.1 --repo "$GITHUB_REPOSITORY" --pattern 'ZhangGua-v0.9.1-release.apk' --dir /tmp/public-v091
+          PUBLIC_SHA=$(sha256sum /tmp/public-v091/ZhangGua-v0.9.1-release.apk | awk '{print $1}')
+          test "$PUBLIC_SHA" = "$APK_SHA256"
+          printf 'v0.9.1 release verified\nAPK SHA-256: %s\n' "$PUBLIC_SHA" > V0.9.1_RELEASE_VERIFIED
+          git add V0.9.1_RELEASE_VERIFIED
+          git commit -m 'Mark v0.9.1 release verified'
+          git push origin main
