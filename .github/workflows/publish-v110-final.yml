@@ -32,11 +32,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p dist patches
-          base64 -d release-transfer/v1.1.0-standard-sign.patch.b64 > patches/standard.zst
-          base64 -d release-transfer/v1.1.0-legacy-sign.patch.b64 > patches/legacy.zst
-          zstd -d --patch-from=unsigned/RyusGua-v1.1.0-standard-unsigned-aligned.apk patches/standard.zst -o dist/RyusGua-v1.1.0-standard.apk
-          zstd -d --patch-from=unsigned/RyusGua-v1.1.0-legacy-unsigned-aligned.apk patches/legacy.zst -o dist/RyusGua-v1.1.0-legacy.apk
+          mkdir -p dist
+          echo 'a1f2e7928dca5794c7c6218f6901a31b23a3276b9b7347cecfa28f92195b9df6  release-transfer/v1.1.0-standard-sign.patch.zst' | sha256sum -c -
+          echo 'e89cfb8cb96308b537d95847a5fadcfdfe287ccd0ace8c3a04ebe046136083e9  release-transfer/v1.1.0-legacy-sign.patch.zst' | sha256sum -c -
+          zstd -d --patch-from=unsigned/RyusGua-v1.1.0-standard-unsigned-aligned.apk release-transfer/v1.1.0-standard-sign.patch.zst -o dist/RyusGua-v1.1.0-standard.apk
+          zstd -d --patch-from=unsigned/RyusGua-v1.1.0-legacy-unsigned-aligned.apk release-transfer/v1.1.0-legacy-sign.patch.zst -o dist/RyusGua-v1.1.0-legacy.apk
           echo '9f880ea384558ba3c6d179be56ec60cea75c487452b19b769899d07216807ff9  dist/RyusGua-v1.1.0-standard.apk' | sha256sum -c -
           echo 'dda0eb234b2d0cfd2a6573b8c4d79d718bc673a84948ff1bd3002dccc5b8a3dc  dist/RyusGua-v1.1.0-legacy.apk' | sha256sum -c -
           java -jar unsigned/apksigner.jar verify --verbose --print-certs dist/RyusGua-v1.1.0-standard.apk | tee dist/signing-certificate.txt
