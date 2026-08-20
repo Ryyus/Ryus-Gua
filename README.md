@@ -1,11 +1,18 @@
 # 柳之卦 · Ryu's Gua
 
-> **正式版 / Stable release: 1.0.0**  
+> **正式版 / Stable release: 1.1.0**  
 > **Android package:** `com.ryusgua.app`
 
 ## 中文
 
 **柳之卦（Ryu's Gua）** 是一款以三钱六爻为核心交互的 Android《周易》文化应用。1.0 起项目与 Android 应用统一使用“柳之卦”这一名称，并启用全新的包名 `com.ryusgua.app`。
+
+### 1.1 重要变化
+
+- “解卦”现在首先打开**离线解卦**：不需要网络、账号、API Key 或云端模型。
+- 离线结果根据本卦/之卦、上下卦象意与动爻数量动态生成，并采用透明的传统常见变爻取用规则。
+- 离线结果页提供 **AI 解卦** 按钮；AI 仅作为用户主动选择的增强层，并基于本机已经计算好的卦象与取用结果继续解释。
+- 修复应用内版本号仍显示 0.9.3 的问题；所有版本展示改为自动读取构建版本。
 
 ### 1.0 重要变化
 
@@ -49,6 +56,13 @@ gradle assembleStandardDebug assembleLegacyDebug
 ## English
 
 **Ryu's Gua (柳之卦)** is an Android I Ching / Zhou Yi cultural app built around the traditional three-coin, six-line casting interaction. Starting with 1.0, the project and the Android app share one formal identity and use the new package name `com.ryusgua.app`.
+
+### What's new in 1.1
+
+- **Reading** now opens a fully offline deterministic interpretation first; no network, account, API key, or cloud model is required.
+- The offline page derives its result from the base/changed hexagrams, trigram symbolism, and moving-line selection rules.
+- AI is an optional second step launched from the offline result page and is grounded in the locally computed reading.
+- Fixed stale in-app version labels by reading the build version dynamically.
 
 ### What's new in 1.0
 
