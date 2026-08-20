@@ -39,15 +39,7 @@ jobs:
           script: |
             set -e
             adb wait-for-device
-            READY=0
-            for i in $(seq 1 90); do
-              if adb shell pm path android 2>/dev/null | grep -q '^package:' && adb shell service check activity 2>/dev/null | grep -q 'found'; then
-                READY=1
-                break
-              fi
-              sleep 2
-            done
-            test "$READY" = "1"
+            READY=0; for i in $(seq 1 90); do if adb shell pm path android 2>/dev/null | grep -q '^package:' && adb shell service check activity 2>/dev/null | grep -q 'found'; then READY=1; break; fi; sleep 2; done; test "$READY" = "1"
             adb install -r "dist/${{ matrix.apk }}"
             adb logcat -c
             adb shell am force-stop com.ryusgua.app || true
