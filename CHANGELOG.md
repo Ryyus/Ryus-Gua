@@ -3,8 +3,10 @@
 ## 1.1.0
 - 中文：新增完全离线的规则解卦页；点击“解卦”先显示本地结果，再由用户选择是否调用 AI。
 - 中文：离线解卦按本卦/之卦、上下卦象意和 0–6 动爻取用规则生成；AI 提示词改为基于本地已计算结果，避免重复算卦。
+- 中文：离线结果支持一键复制；若历史中已有 AI 解读，离线页可直接进入已保存的 AI 结果。
 - 中文：修复应用内仍硬编码显示 v0.9.3 的问题；启动页、顶部栏、设置与更新卡片统一读取构建版本。
 - English: Added a fully offline deterministic reading page. The Reading action now shows local results first, with AI available as an optional second step.
+- English: Offline readings can be copied, and saved AI interpretations remain accessible from the offline page.
 - English: Fixed stale hard-coded v0.9.3 UI labels by reading the build version dynamically.
 
 ## 1.0.0 / 正式版
