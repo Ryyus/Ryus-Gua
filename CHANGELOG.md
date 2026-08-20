@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.2
+- 中文：新增 7 套可切换开屏样式：经典初版、A 电子法器启动、B 古意极简、C 周易原典、D 卜筮仪式、E 终端自检、F 六爻启动序列。
+- 中文：当前经典初版完整保留并继续作为默认；开屏样式在“设置 → 交互与动画”中选择，保存后下次启动生效。
+- 中文：不同样式使用独立文字节奏与启动时长；经典初版约 1.25 秒，A–F 约 2.05–2.60 秒。
+- 中文：开屏样式选择仅保存在本机，不需要网络、账号或额外权限。
+- English: Added seven selectable boot-screen styles: Classic, A Electronic Ritual Device, B Ancient Minimal, C Zhou Yi Classical, D Divination Ritual, E Terminal Self-Test, and F Six-Line Boot Sequence.
+- English: The existing Classic boot is preserved and remains the default; the selected style is saved in Interaction & Animation settings and takes effect on the next launch.
+- English: Each rich style has its own text sequence and timing while Classic remains a fast ~1.25 s boot.
+
 ## 1.1.1
 - 中文：统一所有起卦页面的底部状态区为手动正式起卦的安全布局，红色“正式起卦/爻位”提示统一上移并为爻象保留相同空间，修复文字与爻象重叠。
 - 中文：普通起卦、正式起卦均新增与历史页一致的右上角“返回”按钮；返回会安全取消当前起卦并回到主页。
@@ -26,7 +35,7 @@
 
 ## 0.9.3
 - 中文：经典浮动动画延长到与物理飞出一致的约 1.08 秒；正式起卦会关闭设置并返回主界面；预设 AI 服务商 Endpoint 改为只读显示。
-- 中文：历史记录新增秒级时间、正式起卦标记、AI 解读持久化、PIN 固定与备注；30 条上限仅统计未固定记录。
+- 中文：历史记录新增秒级时间、正式起卦标记、AI 解卦持久化、PIN 固定与备注；30 条上限仅统计未固定记录。
 - 中文：新增 Android 6.0+ Legacy APK，标准 APK 继续支持 Android 8.0+；两者保持相同包名、版本号与正式签名身份。
 - English: Matched classic animation duration to the ~1.08 s physics animation; Formal Casting now exits Settings; preset AI endpoints are read-only.
 - English: History now stores second-level timestamps, Formal Casting metadata, AI results, pins, and notes; the 30-entry rolling limit applies only to unpinned entries.
@@ -57,7 +66,7 @@
 
 ## 0.8.0
 - Added selectable **classic floating** and **physics launch** coin animations.
-- Physics mode launches three coins from the casting-button area with independent velocity, gravity, drag, rotation, simple coin collision and damped spring settling.
+- Physics mode launches three coins from the casting-button area with independent velocity, gravity, rotation, simple coin collision and damped spring settling.
 - Reworked Settings into compact grouped cards instead of a fully expanded form.
 
 ## 0.7.0

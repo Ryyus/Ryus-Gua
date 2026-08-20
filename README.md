@@ -1,11 +1,19 @@
 # 柳之卦 · Ryu's Gua
 
-> **正式版 / Stable release: 1.1.1**  
+> **正式版 / Stable release: 1.1.2**  
 > **Android package:** `com.ryusgua.app`
 
 ## 中文
 
 **柳之卦（Ryu's Gua）** 是一款以三钱六爻为核心交互的 Android《周易》文化应用。1.0 起项目与 Android 应用统一使用“柳之卦”这一名称，并启用全新的包名 `com.ryusgua.app`。
+
+### 1.1.2 开屏样式
+
+- 新增 **7 套可切换开屏**，当前经典初版完整保留并继续作为默认样式。
+- 7 套分别为：**经典初版、A 电子法器启动、B 古意极简、C 周易原典、D 卜筮仪式、E 终端自检、F 六爻启动序列**。
+- 在 **设置 → 交互与动画 → 开屏样式** 中选择，保存后下次启动生效。
+- 经典初版保持约 1.25 秒的快速启动；A–F 根据文字节奏使用约 2.05–2.60 秒的仪式化启动时长。
+- 开屏选择保存在本机，不需要网络、账号或额外权限。
 
 ### 1.1.1 维护更新
 
@@ -34,6 +42,7 @@
 
 - 三钱六爻起卦：6 / 7 / 8 / 9、动爻与变卦
 - 普通起卦与“正式起卦”定时模式
+- **7 套可切换开屏样式**，包括经典、古意、原典、仪式、终端与六爻启动方向
 - 经典浮动 / 物理飞出两套铜钱动画与可选垂直翻转
 - 经文、历史、复制、分享、备注与固定（PIN）
 - 历史记录保存 `HH:mm:ss`、正式起卦标记与 AI 解卦结果；普通历史保留最近 30 条，PIN 项永久保留
@@ -65,6 +74,14 @@ gradle assembleStandardDebug assembleLegacyDebug
 
 **Ryu's Gua (柳之卦)** is an Android I Ching / Zhou Yi cultural app built around the traditional three-coin, six-line casting interaction. Starting with 1.0, the project and the Android app share one formal identity and use the new package name `com.ryusgua.app`.
 
+### What's new in 1.1.2
+
+- Added **seven selectable boot-screen styles** while preserving the existing Classic boot as the default.
+- Styles: **Classic**, **A Electronic Ritual Device**, **B Ancient Minimal**, **C Zhou Yi Classical**, **D Divination Ritual**, **E Terminal Self-Test**, and **F Six-Line Boot Sequence**.
+- Choose the style in **Settings → Interaction & Animation → Boot style**; the saved choice takes effect on the next launch.
+- Classic remains a fast ~1.25 s boot, while A–F use roughly 2.05–2.60 s to support their richer text sequences.
+- The selected boot style is stored locally and does not require network access or extra permissions.
+
 ### What's new in 1.1.1
 
 - Unified all casting screens to the safer manual Formal Casting bottom layout so red status text no longer overlaps the hexagram stack.
@@ -92,6 +109,7 @@ gradle assembleStandardDebug assembleLegacyDebug
 
 - Three-coin six-line casting with moving lines and changed hexagrams
 - Normal casting and scheduled **Formal Casting** mode
+- Seven selectable boot-screen styles spanning classic, ritual, classical, terminal, and six-line themes
 - Classic floating / physics launch coin animations with optional vertical flipping
 - Zhou Yi text, history, copy/share, notes, and PIN support
 - History stores `HH:mm:ss`, formal-cast metadata, and AI interpretations; the latest 30 ordinary entries are retained while pinned entries never expire
