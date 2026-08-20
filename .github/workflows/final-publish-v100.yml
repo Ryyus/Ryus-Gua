@@ -36,6 +36,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           cat > /tmp/release-notes.md <<'EOF'
@@ -91,6 +92,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           rm -rf /tmp/v100-public && mkdir -p /tmp/v100-public
