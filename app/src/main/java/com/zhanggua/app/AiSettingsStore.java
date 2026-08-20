@@ -97,7 +97,9 @@ final class AiSettingsStore {
 
     private static Settings loadProviderInternal(Context context, String provider) {
         SharedPreferences p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        String endpoint = p.getString(key(provider, F_ENDPOINT), providerEndpoint(provider));
+        String endpoint = PROVIDER_CUSTOM.equals(provider)
+                ? p.getString(key(provider, F_ENDPOINT), providerEndpoint(provider))
+                : providerEndpoint(provider);
         String model = p.getString(key(provider, F_MODEL), providerModel(provider));
         String mode = p.getString(key(provider, F_MODE), providerMode(provider));
         String apiKey = decryptApiKey(p, provider);
@@ -116,7 +118,8 @@ final class AiSettingsStore {
     static void save(Context context, String endpoint, String apiKey, String model, String mode, String provider) throws Exception {
         migrateLegacyIfNeeded(context);
         provider = normalizeProvider(provider);
-        endpoint = normalizeEndpoint(endpoint);
+        endpoint = PROVIDER_CUSTOM.equals(provider)
+                ? normalizeEndpoint(endpoint) : providerEndpoint(provider);
         model = model == null ? "" : model.trim();
         if (!endpoint.startsWith("https://")) throw new IllegalArgumentException("接口地址必须使用 HTTPS");
         if (model.isEmpty()) throw new IllegalArgumentException("模型 ID 不能为空");

@@ -60,6 +60,15 @@ public class MainActivity extends Activity implements SensorEventListener {
     private long lastShakeAt = 0L;
     private AudioEngine audioEngine;
 
+    @android.annotation.TargetApi(28)
+    private static final class Api28Window {
+        static void enableCutout(Window window) {
+            WindowManager.LayoutParams lp = window.getAttributes();
+            lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            window.setAttributes(lp);
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,9 +78,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                WindowManager.LayoutParams lp = window.getAttributes();
-                lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
-                window.setAttributes(lp);
+                Api28Window.enableCutout(window);
             }
         } catch (Throwable ignored) {}
         enterImmersive(window);
@@ -184,6 +191,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         private float lastY = 0f;
         private boolean dragging = false;
         private boolean loadedFromHistory = false;
+        private String currentHistoryId = "";
         private boolean aiLoading = false;
         private String aiText = "";
         private String aiReasoning = "";
@@ -274,27 +282,17 @@ public class MainActivity extends Activity implements SensorEventListener {
             int left = 0, top = 0, right = 0, bottom = 0;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 try {
-                    // Android 11+ exposes navigation and gesture-reserved areas separately.
-                    // Use their union so bottom controls stay above the home gesture / nav bar.
-                    Insets nav = insets.getInsetsIgnoringVisibility(WindowInsets.Type.navigationBars());
-                    Insets gestures = insets.getInsets(WindowInsets.Type.systemGestures());
-                    Insets mandatory = insets.getInsets(WindowInsets.Type.mandatorySystemGestures());
-                    Insets cut = insets.getInsets(WindowInsets.Type.displayCutout());
-                    left = Math.max(Math.max(nav.left, gestures.left), Math.max(mandatory.left, cut.left));
-                    top = Math.max(nav.top, cut.top);
-                    right = Math.max(Math.max(nav.right, gestures.right), Math.max(mandatory.right, cut.right));
-                    bottom = Math.max(Math.max(nav.bottom, gestures.bottom), Math.max(mandatory.bottom, cut.bottom));
+                    int[] values = Api30Insets.read(insets);
+                    left = values[0]; top = values[1]; right = values[2]; bottom = values[3];
                     if (bottom > 0) bottom += (int) dp(4);
                 } catch (Throwable ignored) {}
             } else {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    DisplayCutout cutout = insets.getDisplayCutout();
-                    if (cutout != null) {
-                        left = Math.max(left, cutout.getSafeInsetLeft());
-                        top = Math.max(top, cutout.getSafeInsetTop());
-                        right = Math.max(right, cutout.getSafeInsetRight());
-                        bottom = Math.max(bottom, cutout.getSafeInsetBottom());
-                    }
+                    try {
+                        int[] cut = Api28Insets.readCutout(insets);
+                        left = Math.max(left, cut[0]); top = Math.max(top, cut[1]);
+                        right = Math.max(right, cut[2]); bottom = Math.max(bottom, cut[3]);
+                    } catch (Throwable ignored) {}
                 }
                 left = Math.max(left, insets.getSystemWindowInsetLeft());
                 right = Math.max(right, insets.getSystemWindowInsetRight());
@@ -306,6 +304,31 @@ public class MainActivity extends Activity implements SensorEventListener {
             safeInsetBottom = bottom;
             postInvalidateOnAnimation();
             return insets;
+        }
+
+        @android.annotation.TargetApi(30)
+        private static final class Api30Insets {
+            static int[] read(WindowInsets insets) {
+                Insets nav = insets.getInsetsIgnoringVisibility(WindowInsets.Type.navigationBars());
+                Insets gestures = insets.getInsets(WindowInsets.Type.systemGestures());
+                Insets mandatory = insets.getInsets(WindowInsets.Type.mandatorySystemGestures());
+                Insets cut = insets.getInsets(WindowInsets.Type.displayCutout());
+                return new int[]{
+                        Math.max(Math.max(nav.left, gestures.left), Math.max(mandatory.left, cut.left)),
+                        Math.max(nav.top, cut.top),
+                        Math.max(Math.max(nav.right, gestures.right), Math.max(mandatory.right, cut.right)),
+                        Math.max(Math.max(nav.bottom, gestures.bottom), Math.max(mandatory.bottom, cut.bottom))};
+            }
+        }
+
+        @android.annotation.TargetApi(28)
+        private static final class Api28Insets {
+            static int[] readCutout(WindowInsets insets) {
+                DisplayCutout cutout = insets.getDisplayCutout();
+                if (cutout == null) return new int[]{0, 0, 0, 0};
+                return new int[]{cutout.getSafeInsetLeft(), cutout.getSafeInsetTop(),
+                        cutout.getSafeInsetRight(), cutout.getSafeInsetBottom()};
+            }
         }
 
         private void loadExperienceSettings() {
@@ -373,7 +396,11 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (!hapticEnabled || vibrator == null) return;
             try {
                 if (!vibrator.hasVibrator()) return;
-                vibrator.vibrate(VibrationEffect.createOneShot(ms, Math.max(1, Math.min(255, amplitude))));
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    Api26Vibration.oneShot(vibrator, ms, amplitude);
+                } else {
+                    vibrator.vibrate(ms);
+                }
             } catch (Throwable ignored) {}
         }
 
@@ -383,8 +410,22 @@ public class MainActivity extends Activity implements SensorEventListener {
                 if (!vibrator.hasVibrator()) return;
                 long[] timings = {0, 18, 52, 18, 70, 34};
                 int[] amps = {0, 85, 0, 115, 0, 165};
-                vibrator.vibrate(VibrationEffect.createWaveform(timings, amps, -1));
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    Api26Vibration.wave(vibrator, timings, amps);
+                } else {
+                    vibrator.vibrate(timings, -1);
+                }
             } catch (Throwable ignored) {}
+        }
+
+        @android.annotation.TargetApi(26)
+        private static final class Api26Vibration {
+            static void oneShot(Vibrator vibrator, long ms, int amplitude) {
+                vibrator.vibrate(VibrationEffect.createOneShot(ms, Math.max(1, Math.min(255, amplitude))));
+            }
+            static void wave(Vibrator vibrator, long[] timings, int[] amps) {
+                vibrator.vibrate(VibrationEffect.createWaveform(timings, amps, -1));
+            }
         }
 
         private void haptic(int constant) {
@@ -474,12 +515,12 @@ public class MainActivity extends Activity implements SensorEventListener {
             paint.setStyle(Paint.Style.FILL); paint.setColor(GOLD);
             c.drawRect(barL+dp(2), barY+dp(2), barL+dp(2)+(barR-barL-dp(4))*bootSweep, barY+dp(6), paint);
             text(c, bootStep < 4 ? "INITIALIZING..." : "READY", cx, barY+dp(28), 8, bootStep<4?MUTED:GOLD, Paint.Align.CENTER, true);
-            text(c, "v0.9.2 / Ryu\'s Gua", cx, h-dp(36), 7.5f, MUTED, Paint.Align.CENTER, false);
+            text(c, "v0.9.3 / Ryu\'s Gua", cx, h-dp(36), 7.5f, MUTED, Paint.Align.CENTER, false);
         }
 
         private void drawHeader(Canvas c, float w) {
             text(c, "掌卦", dp(20), dp(41), 26, FG, Paint.Align.LEFT, true);
-            text(c, "RYU\'S GUA / 0.9.2", dp(20), dp(61), 9, MUTED, Paint.Align.LEFT, false);
+            text(c, "RYU\'S GUA / 0.9.3", dp(20), dp(61), 9, MUTED, Paint.Align.LEFT, false);
             text(c, "易", w - dp(22), dp(43), 25, GOLD, Paint.Align.RIGHT, true);
             line(c, dp(20), dp(75), w - dp(20), dp(75), GOLD, 1);
         }
@@ -668,7 +709,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             settingsButton.set(w/2f+dp(5), y2, w-dp(20), y3-dp(7));
             primaryButton.set(dp(20), y3, w-dp(20), h-dp(8));
             button(c, auxLeftButton, "经文", GOLD, false, 11);
-            button(c, rightButton, "解卦", GOLD, true, 11);
+            button(c, rightButton, (!aiText.trim().isEmpty() && currentHistoryId != null && !currentHistoryId.isEmpty()) ? "AI 已存" : "解卦", GOLD, true, 11);
             button(c, auxRightButton, "历史", MUTED, false, 11);
             button(c, leftButton, "复制", FG, false, 10);
             button(c, settingsButton, "设置", MUTED, false, 10);
@@ -736,8 +777,8 @@ public class MainActivity extends Activity implements SensorEventListener {
         private void drawHistory(Canvas c, float w, float h) {
             backButton.set(w - dp(78), dp(86), w - dp(20), dp(116));
             button(c, backButton, "返回", MUTED, false, 9);
-            clearButton.set(w - dp(148), dp(86), w - dp(88), dp(116));
-            button(c, clearButton, "清空", RED, false, 9);
+            clearButton.set(w - dp(158), dp(86), w - dp(88), dp(116));
+            button(c, clearButton, "清空未固定", RED, false, 7.8f);
             text(c, "历史", dp(20), dp(108), 15, GOLD, Paint.Align.LEFT, true);
 
             List<HistoryStore.Entry> entries = HistoryStore.load(getContext());
@@ -749,23 +790,79 @@ public class MainActivity extends Activity implements SensorEventListener {
                 maxScroll = 0;
                 c.restore(); return;
             }
-            SimpleDateFormat fmt = new SimpleDateFormat("MM-dd HH:mm", Locale.CHINA);
+            SimpleDateFormat fmt = new SimpleDateFormat("MM-dd HH:mm:ss", Locale.CHINA);
             for (int i = 0; i < entries.size(); i++) {
                 HistoryStore.Entry e = entries.get(i);
                 HexagramEngine.Hexagram base = HexagramEngine.lookup(e.lines, false);
                 HexagramEngine.Hexagram changed = HexagramEngine.lookup(e.lines, true);
-                RectF card = new RectF(dp(20), y, w - dp(20), y + dp(84));
+                RectF card = new RectF(dp(20), y, w - dp(20), y + dp(116));
                 panel(c, card);
-                text(c, fmt.format(new Date(e.timeMillis)), card.left + dp(12), card.top + dp(19), 8.5f, MUTED, Paint.Align.LEFT, false);
-                text(c, base.name, card.left + dp(12), card.top + dp(45), 13, FG, Paint.Align.LEFT, true);
+                String timeLine = fmt.format(new Date(e.timeMillis)) + " · " + (e.formal ? "正式起卦" : "普通起卦");
+                text(c, timeLine, card.left + dp(12), card.top + dp(18), 8.2f, e.formal ? GOLD : MUTED, Paint.Align.LEFT, false);
+                text(c, base.name, card.left + dp(12), card.top + dp(44), 13, FG, Paint.Align.LEFT, true);
                 String moving = HexagramEngine.movingLineLabels(e.lines).isEmpty() ? "静卦" : "→ " + changed.name;
-                text(c, moving, card.left + dp(12), card.top + dp(67), 9.5f, moving.equals("静卦") ? MUTED : RED, Paint.Align.LEFT, false);
-                drawMiniStack(c, card.right - dp(48), card.centerY(), e.lines);
-                historyHits.add(new HistoryHit(new RectF(card), e));
-                y += dp(96);
+                text(c, moving, card.left + dp(12), card.top + dp(65), 9.3f, moving.equals("静卦") ? MUTED : RED, Paint.Align.LEFT, false);
+                String badges = (e.hasAi() ? "AI 已保存" : "") + (e.hasAi() && e.hasNote() ? " · " : "") + (e.hasNote() ? "有备注" : "");
+                if (!badges.isEmpty()) text(c, badges, card.left + dp(12), card.top + dp(86), 8.5f, e.hasAi() ? GOLD : MUTED, Paint.Align.LEFT, true);
+                if (e.hasNote()) {
+                    String note = e.note.replace('\n', ' ').trim();
+                    if (note.length() > 18) note = note.substring(0, 18) + "…";
+                    text(c, "备注：" + note, card.left + dp(12), card.top + dp(105), 8.2f, MUTED, Paint.Align.LEFT, false);
+                }
+
+                RectF pinRect = new RectF(card.right - dp(119), card.top + dp(8), card.right - dp(68), card.top + dp(34));
+                RectF noteRect = new RectF(card.right - dp(119), card.top + dp(40), card.right - dp(68), card.top + dp(66));
+                button(c, pinRect, e.pinned ? "已固定" : "固定", e.pinned ? GOLD : MUTED, false, 7.5f);
+                button(c, noteRect, "备注", MUTED, false, 7.5f);
+                drawMiniStack(c, card.right - dp(35), card.centerY() + dp(4), e.lines);
+                historyHits.add(new HistoryHit(new RectF(card), pinRect, noteRect, e));
+                y += dp(128);
             }
             maxScroll = Math.max(0, y + scrollOffset - h + dp(20));
             c.restore();
+        }
+
+        private void loadHistoryEntry(HistoryStore.Entry entry) {
+            if (entry == null) return;
+            System.arraycopy(entry.lines, 0, lines, 0, 6);
+            loadedFromHistory = true;
+            currentHistoryId = entry.id;
+            aiText = entry.aiText;
+            aiReasoning = entry.aiReasoning;
+            aiReasoningSummaryOnly = entry.aiReasoningSummaryOnly;
+            aiReasoningExpanded = false;
+            aiModel = entry.aiModel;
+            aiError = "";
+            aiLoading = false;
+            state = State.RESULT;
+            scrollOffset = 0;
+            haptic(HapticFeedbackConstants.CLOCK_TICK);
+            postInvalidateOnAnimation();
+        }
+
+        private void showHistoryNoteDialog(HistoryStore.Entry entry) {
+            if (entry == null) return;
+            final EditText input = new EditText(getContext());
+            input.setHint("给这次起卦写备注（最多 300 字）");
+            input.setText(entry.note);
+            input.setSelection(input.getText().length());
+            input.setMinLines(2);
+            input.setMaxLines(5);
+            new AlertDialog.Builder(getContext())
+                    .setTitle(entry.pinned ? "固定记录 · 备注" : "历史备注")
+                    .setView(input)
+                    .setPositiveButton("保存", (d, which) -> {
+                        String note = input.getText().toString();
+                        if (note.length() > 300) note = note.substring(0, 300);
+                        HistoryStore.updateNote(getContext(), entry.id, note);
+                        postInvalidateOnAnimation();
+                    })
+                    .setNeutralButton(entry.note.isEmpty() ? null : "清除备注", (d, which) -> {
+                        HistoryStore.updateNote(getContext(), entry.id, "");
+                        postInvalidateOnAnimation();
+                    })
+                    .setNegativeButton("取消", null)
+                    .show();
         }
 
         private void drawAi(Canvas c, float w, float h) {
@@ -929,20 +1026,26 @@ public class MainActivity extends Activity implements SensorEventListener {
                         copyAiResult(); return true;
                     }
                     if (!dragging && state == State.AI && auxRightButton.contains(x, y)) {
-                        if (!aiLoading) startAiOrConfigure();
+                        if (!aiLoading) rerunAiReading();
                         return true;
                     }
                     if (!dragging && state == State.HISTORY && clearButton.contains(x, y)) {
-                        HistoryStore.clear(getContext()); scrollOffset = 0;
-                        Toast.makeText(getContext(), "历史已清空", Toast.LENGTH_SHORT).show(); postInvalidateOnAnimation(); return true;
+                        HistoryStore.clearUnpinned(getContext()); scrollOffset = 0;
+                        Toast.makeText(getContext(), "未固定历史已清空", Toast.LENGTH_SHORT).show(); postInvalidateOnAnimation(); return true;
                     }
                     if (!dragging && state == State.HISTORY) {
                         for (HistoryHit hit : historyHits) {
+                            if (hit.pinRect.contains(x, y)) {
+                                boolean pinned = HistoryStore.togglePin(getContext(), hit.entry.id);
+                                Toast.makeText(getContext(), pinned ? "已固定 · 不再自动删除" : "已取消固定", Toast.LENGTH_SHORT).show();
+                                postInvalidateOnAnimation(); return true;
+                            }
+                            if (hit.noteRect.contains(x, y)) {
+                                showHistoryNoteDialog(hit.entry); return true;
+                            }
                             if (hit.rect.contains(x, y)) {
-                                System.arraycopy(hit.entry.lines, 0, lines, 0, 6);
-                                loadedFromHistory = true;
-                                state = State.RESULT; scrollOffset = 0;
-                                haptic(HapticFeedbackConstants.CLOCK_TICK); postInvalidateOnAnimation(); return true;
+                                loadHistoryEntry(HistoryStore.find(getContext(), hit.entry.id));
+                                return true;
                             }
                         }
                     }
@@ -993,6 +1096,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             lineAnimating = false;
             physicsActive = false;
             loadedFromHistory = false;
+            currentHistoryId = "";
+            aiText = ""; aiReasoning = ""; aiError = ""; aiModel = "";
             state = State.CASTING;
             postInvalidateOnAnimation();
             castNext();
@@ -1007,6 +1112,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             lineAnimating = false;
             physicsActive = false;
             loadedFromHistory = false;
+            currentHistoryId = "";
+            aiText = ""; aiReasoning = ""; aiError = ""; aiModel = "";
             formalCastingActive = true;
             formalAwaitingManual = false;
             long now = System.currentTimeMillis();
@@ -1074,7 +1181,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             final int[] lastBucket = {-1};
             Runnable flip = new Runnable() {
                 @Override public void run() {
-                    float t = Math.min(1f, (SystemClock.uptimeMillis() - started) / 430f);
+                    float t = Math.min(1f, (SystemClock.uptimeMillis() - started) / 1080f);
                     coinPhase = t * (float) (Math.PI * 8.0);
                     int bucket = Math.min(11, (int) (t * 12f));
                     if (bucket != lastBucket[0]) {
@@ -1204,17 +1311,19 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (castCount >= 6) {
                 handler.postDelayed(this::finishCasting, manualCasting ? 300L : 240L);
             } else if (!manualCasting && !formalCastingActive) {
-                handler.postDelayed(this::castNext, ANIM_PHYSICS.equals(coinAnimationMode) ? 300L : 220L);
+                handler.postDelayed(this::castNext, 300L);
             }
         }
 
         private void finishCasting() {
             if (state != State.CASTING) return;
+            boolean wasFormal = formalCastingActive;
             formalCastingActive = false;
             formalAwaitingManual = false;
             handler.removeCallbacks(formalClockTicker);
             state = State.RESULT;
-            HistoryStore.add(getContext(), lines);
+            HistoryStore.Entry savedEntry = HistoryStore.add(getContext(), lines, wasFormal);
+            currentHistoryId = savedEntry.id;
             if (soundEnabled) audio.complete();
             ritualPulse();
             haptic(HapticFeedbackConstants.CONFIRM);
@@ -1270,6 +1379,26 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         private void startAiOrConfigure() {
+            if (currentHistoryId != null && !currentHistoryId.isEmpty()) {
+                HistoryStore.Entry saved = HistoryStore.find(getContext(), currentHistoryId);
+                if (saved != null && saved.hasAi()) {
+                    aiText = saved.aiText;
+                    aiReasoning = saved.aiReasoning;
+                    aiReasoningSummaryOnly = saved.aiReasoningSummaryOnly;
+                    aiReasoningExpanded = false;
+                    aiModel = saved.aiModel;
+                    aiError = "";
+                    aiLoading = false;
+                    state = State.AI;
+                    scrollOffset = 0;
+                    postInvalidateOnAnimation();
+                    return;
+                }
+            }
+            rerunAiReading();
+        }
+
+        private void rerunAiReading() {
             AiSettingsStore.Settings settings = AiSettingsStore.load(getContext());
             if (!settings.isConfigured()) {
                 showSettingsDialog(true);
@@ -1322,6 +1451,9 @@ public class MainActivity extends Activity implements SensorEventListener {
                         aiText = text;
                         synchronized (streamedReasoning) { aiReasoning = streamedReasoning.toString(); }
                         aiError = "";
+                        if (currentHistoryId != null && !currentHistoryId.isEmpty()) {
+                            HistoryStore.updateAi(getContext(), currentHistoryId, aiText, aiReasoning, aiReasoningSummaryOnly, aiModel);
+                        }
                         haptic(HapticFeedbackConstants.CONFIRM);
                         postInvalidateOnAnimation();
                     });
@@ -1374,23 +1506,26 @@ public class MainActivity extends Activity implements SensorEventListener {
             heading.setText("掌卦设置"); heading.setTextSize(22); heading.setTextColor(FG);
             heading.setTypeface(Typeface.DEFAULT_BOLD); root.addView(heading);
             TextView sub = new TextView(ctx);
-            sub.setText("RYU'S GUA / SETTINGS / v0.9.2"); sub.setTextSize(10); sub.setTextColor(MUTED);
+            sub.setText("RYU'S GUA / SETTINGS / v0.9.3"); sub.setTextSize(10); sub.setTextColor(MUTED);
             root.addView(sub);
             TextView author = new TextView(ctx);
             author.setText("作者 · Ryyus"); author.setTextSize(9.5f); author.setTextColor(MUTED);
             author.setPadding(0, (int)(2*density), 0, (int)(12*density)); root.addView(author);
 
+            final AlertDialog[] parentDialog = {null};
             LinearLayout interaction = settingsCard(ctx, "交互与动画", interactionSummary());
             root.addView(interaction);
             TextView interactionSummaryView = (TextView) interaction.getChildAt(1);
-            interaction.setOnClickListener(v -> showInteractionSettingsDialog(() -> interactionSummaryView.setText(interactionSummary())));
+            interaction.setOnClickListener(v -> showInteractionSettingsDialog(
+                    () -> interactionSummaryView.setText(interactionSummary()),
+                    () -> { if (parentDialog[0] != null) parentDialog[0].dismiss(); }));
 
             LinearLayout ai = settingsCard(ctx, "AI 解卦", aiSettingsSummary(AiSettingsStore.load(ctx)));
             root.addView(ai);
             TextView aiSummaryView = (TextView) ai.getChildAt(1);
             ai.setOnClickListener(v -> showAiSettingsPanel(false, () -> aiSummaryView.setText(aiSettingsSummary(AiSettingsStore.load(ctx)))));
 
-            LinearLayout update = settingsCard(ctx, "版本更新", "当前 v0.9.2 · 点击检查新版本");
+            LinearLayout update = settingsCard(ctx, "版本更新", "当前 v0.9.3 · 点击检查新版本");
             root.addView(update);
             update.setOnClickListener(v -> UpdateChecker.check((Activity) ctx, true));
 
@@ -1398,6 +1533,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                     .setView(root)
                     .setNegativeButton("关闭", null)
                     .create();
+            parentDialog[0] = dialog;
             dialog.setOnShowListener(d -> {
                 try {
                     dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
@@ -1441,9 +1577,11 @@ public class MainActivity extends Activity implements SensorEventListener {
             return card;
         }
 
-        private void showInteractionSettingsDialog() { showInteractionSettingsDialog(null); }
+        private void showInteractionSettingsDialog() { showInteractionSettingsDialog(null, null); }
 
-        private void showInteractionSettingsDialog(Runnable onSaved) {
+        private void showInteractionSettingsDialog(Runnable onSaved) { showInteractionSettingsDialog(onSaved, null); }
+
+        private void showInteractionSettingsDialog(Runnable onSaved, Runnable onFormalStarted) {
             Context ctx = getContext();
             float density = getResources().getDisplayMetrics().density;
             LinearLayout box = new LinearLayout(ctx);
@@ -1502,6 +1640,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 saveExperienceSettings();
                 if (onSaved != null) onSaved.run();
                 dialog.dismiss();
+                if (onFormalStarted != null) onFormalStarted.run();
                 startFormalCasting();
             });
             dialog.setOnDismissListener(d -> clockHandler.removeCallbacksAndMessages(null));
@@ -1530,7 +1669,14 @@ public class MainActivity extends Activity implements SensorEventListener {
             provider.setAdapter(new ArrayAdapter<>(ctx, android.R.layout.simple_spinner_dropdown_item, providerLabels));
             provider.setSelection(providerIndex(current[0].provider)); box.addView(provider);
 
-            EditText endpoint = new EditText(ctx); endpoint.setHint("API 地址"); endpoint.setSingleLine(true); endpoint.setText(current[0].endpoint); box.addView(endpoint);
+            TextView endpointInfo = new TextView(ctx);
+            endpointInfo.setTextSize(9.5f); endpointInfo.setTextColor(MUTED);
+            endpointInfo.setPadding(0, (int)(5*density), 0, (int)(5*density)); box.addView(endpointInfo);
+            EditText endpoint = new EditText(ctx); endpoint.setHint("API 地址（仅自定义服务商可编辑）"); endpoint.setSingleLine(true); endpoint.setText(current[0].endpoint); box.addView(endpoint);
+            boolean initialCustom = AiSettingsStore.PROVIDER_CUSTOM.equals(current[0].provider);
+            endpoint.setVisibility(initialCustom ? View.VISIBLE : View.GONE);
+            endpointInfo.setVisibility(initialCustom ? View.GONE : View.VISIBLE);
+            endpointInfo.setText("API 地址 · " + AiSettingsStore.providerEndpoint(current[0].provider));
             EditText key = new EditText(ctx); key.setHint(current[0].apiKey.isEmpty() ? "API Key" : "API Key（此服务商已保存；留空保持不变）");
             key.setSingleLine(true); key.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD); box.addView(key);
             EditText model = new EditText(ctx); model.setHint("模型 ID"); model.setSingleLine(true); model.setText(current[0].model); box.addView(model);
@@ -1544,7 +1690,11 @@ public class MainActivity extends Activity implements SensorEventListener {
                     String selected = providerValues[Math.max(0, Math.min(position, providerValues.length - 1))];
                     if (first) { first = false; return; }
                     current[0] = AiSettingsStore.loadProvider(ctx, selected);
-                    endpoint.setText(current[0].endpoint);
+                    boolean custom = AiSettingsStore.PROVIDER_CUSTOM.equals(selected);
+                    endpoint.setVisibility(custom ? View.VISIBLE : View.GONE);
+                    endpointInfo.setVisibility(custom ? View.GONE : View.VISIBLE);
+                    if (custom) endpoint.setText(current[0].endpoint);
+                    else endpointInfo.setText("API 地址 · " + AiSettingsStore.providerEndpoint(selected));
                     model.setText(current[0].model);
                     mode.setSelection(AiSettingsStore.MODE_CHAT.equals(current[0].mode) ? 1 : 0);
                     key.setText("");
@@ -1566,7 +1716,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 AiSettingsStore.Settings stored = AiSettingsStore.loadProvider(ctx, selected);
                 String enteredKey = key.getText().toString().trim();
                 String effectiveKey = enteredKey.isEmpty() ? stored.apiKey : enteredKey;
-                String endpointValue = AiSettingsStore.normalizeEndpoint(endpoint.getText().toString());
+                String endpointValue = aiEndpointValue(selected, endpoint);
                 if (effectiveKey.isEmpty()) { Toast.makeText(ctx, "请先填写此服务商的 API Key", Toast.LENGTH_SHORT).show(); return; }
                 if (!endpointValue.startsWith("https://")) { Toast.makeText(ctx, "接口地址必须使用 HTTPS", Toast.LENGTH_SHORT).show(); return; }
                 String modeValue = mode.getSelectedItemPosition() == 1 ? AiSettingsStore.MODE_CHAT : AiSettingsStore.MODE_RESPONSES;
@@ -1599,10 +1749,10 @@ public class MainActivity extends Activity implements SensorEventListener {
                 String selected = providerValues[provider.getSelectedItemPosition()];
                 String modeValue=mode.getSelectedItemPosition()==1?AiSettingsStore.MODE_CHAT:AiSettingsStore.MODE_RESPONSES;
                 try {
-                    AiSettingsStore.save(ctx, endpoint.getText().toString(), key.getText().toString(), model.getText().toString(), modeValue, selected);
+                    AiSettingsStore.save(ctx, aiEndpointValue(selected, endpoint), key.getText().toString(), model.getText().toString(), modeValue, selected);
                     AiSettingsStore.Settings now=AiSettingsStore.load(ctx);
                     if (!selected.equals(now.provider)
-                            || !AiSettingsStore.normalizeEndpoint(endpoint.getText().toString()).equals(now.endpoint)
+                            || !aiEndpointValue(selected, endpoint).equals(now.endpoint)
                             || !model.getText().toString().trim().equals(now.model)
                             || !modeValue.equals(now.mode)) {
                         throw new IllegalStateException("保存后校验失败，请重试");
@@ -1616,6 +1766,11 @@ public class MainActivity extends Activity implements SensorEventListener {
                 } catch(Exception ex){ Toast.makeText(ctx,ex.getMessage()==null?"保存失败":ex.getMessage(),Toast.LENGTH_LONG).show(); }
             }));
             dialog.show();
+        }
+
+        private String aiEndpointValue(String provider, EditText endpoint) {
+            if (!AiSettingsStore.PROVIDER_CUSTOM.equals(provider)) return AiSettingsStore.providerEndpoint(provider);
+            return AiSettingsStore.normalizeEndpoint(endpoint == null ? "" : endpoint.getText().toString());
         }
 
         private String providerLabel(String provider) {
@@ -1644,8 +1799,16 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         private static final class HistoryHit {
-            final RectF rect; final HistoryStore.Entry entry;
-            HistoryHit(RectF rect, HistoryStore.Entry entry) { this.rect = rect; this.entry = entry; }
+            final RectF rect;
+            final RectF pinRect;
+            final RectF noteRect;
+            final HistoryStore.Entry entry;
+            HistoryHit(RectF rect, RectF pinRect, RectF noteRect, HistoryStore.Entry entry) {
+                this.rect = new RectF(rect);
+                this.pinRect = new RectF(pinRect);
+                this.noteRect = new RectF(noteRect);
+                this.entry = entry;
+            }
         }
     }
 }

@@ -8,10 +8,22 @@ android {
 
     defaultConfig {
         applicationId 'com.zhanggua.app'
-        minSdk 26
+        minSdk 23
         targetSdk 35
-        versionCode 11
-        versionName '0.9.2'
+        versionCode 12
+        versionName '0.9.3'
+    }
+
+    flavorDimensions 'compat'
+    productFlavors {
+        standard {
+            dimension 'compat'
+            minSdk 26
+        }
+        legacy {
+            dimension 'compat'
+            minSdk 23
+        }
     }
 
     compileOptions {
