@@ -1,0 +1,34 @@
+name: Apply v1.2.0 UI patch
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/apply_v120_ui.py"
+      - "v120-ui-trigger.txt"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'v1.2.0-ui-icon'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v1.2.0-ui-icon
+          fetch-depth: 0
+          token: ${{ github.token }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply v1.2.0 home copy update
+        run: |
+          python tools/apply_v120_ui.py
+          rm -f tools/apply_v120_ui.py v120-ui-trigger.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Update v1.2.0 home casting copy"
+          git push origin HEAD:v1.2.0-ui-icon
