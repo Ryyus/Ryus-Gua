@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.2
+- Separated AI reasoning/thinking from the final interpretation stream; reasoning no longer leaks into the answer body.
+- Added an expandable **思考过程** section in the AI page. It is collapsed by default and streams independently when the provider exposes reasoning.
+- OpenAI Responses requests use low reasoning effort, low verbosity, and reasoning summaries when supported; Gemini OpenAI-compatible requests use low reasoning effort.
+- Added reasoning adapters for OpenAI Responses events, DeepSeek-style `reasoning_content`, compatible `thinking` fields, and inline `<think>...</think>` output.
+- Tightened the divination prompt to roughly 300–450 Chinese characters, with a maximum target around 500 characters.
+- Removed the unsafe generic `*.delta` fallback that could misclassify reasoning events as final answer text.
+
 ## 0.9.1
 - Settings card summaries refresh immediately after AI or interaction settings are saved.
 - Added **正式起卦**: first line is cast at the next whole minute, then subsequent lines at +10/+20/+30/+40/+50 seconds.
