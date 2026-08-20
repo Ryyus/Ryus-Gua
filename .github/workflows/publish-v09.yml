@@ -1,0 +1,80 @@
+name: Publish Ryu's Gua v0.9 verified release
+
+on:
+  push:
+    branches: ["main"]
+    paths: [".v09-artifact-url"]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download verified signed artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL=$(tr -d '\r\n' < .v09-artifact-url)
+          curl -fL --retry 3 --retry-delay 2 "$URL" -o /tmp/v09.zip
+          mkdir -p dist
+          unzip -o /tmp/v09.zip -d dist
+          test -s dist/ZhangGua-v0.9-release.apk
+          test -s dist/Ryus-Gua-v0.9-source.zip
+          unzip -t dist/ZhangGua-v0.9-release.apk >/dev/null
+          ACTUAL=$(sha256sum dist/ZhangGua-v0.9-release.apk | awk '{print $1}')
+          test "$ACTUAL" = '21a0b9635af8de693073d9905faca9e8b57e9bebc77efb19825cf55bf723c444'
+          echo "APK_SHA256=$ACTUAL" >> "$GITHUB_ENV"
+
+      - name: Publish v0.9.0 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view v0.9.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 && gh release delete v0.9.0 --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+          gh release create v0.9.0 \
+            dist/ZhangGua-v0.9-release.apk \
+            dist/Ryus-Gua-v0.9-source.zip \
+            dist/sha256.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target main \
+            --title "柳之卦 · Ryu's Gua v0.9 · 掌卦 Android" \
+            --notes "v0.9 fixes AI settings persistence and adds streaming interpretation output. AI settings are now provider-scoped: OpenAI, DeepSeek, Gemini, Qwen, Kimi and Custom each keep independent encrypted API keys plus endpoint/model/protocol settings. Existing v0.8 AI settings migrate into the currently selected provider. Saving now performs an immediate read-back verification. AI text streams progressively for Responses API and Chat Completions compatible endpoints. Update checks now use the Ryus-Gua repository. APK SHA-256: $APK_SHA256"
+
+      - name: Publish update metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > update/latest.json <<EOF
+          {
+            "versionCode": 9,
+            "versionName": "0.9.0",
+            "title": "掌卦 v0.9 可用",
+            "notes": "修复 AI 设置保存；不同服务商独立保存 API Key/模型/接口；AI 解卦支持流式输出。",
+            "releasePage": "https://github.com/Ryyus/Ryus-Gua/releases/tag/v0.9.0",
+            "apkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v0.9.0/ZhangGua-v0.9-release.apk",
+            "sha256": "$APK_SHA256"
+          }
+          EOF
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add update/latest.json
+          git diff --cached --quiet || git commit -m 'Publish v0.9 update metadata'
+          git push origin main
+
+      - name: Verify public release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/public && mkdir -p /tmp/public
+          gh release download v0.9.0 --repo "$GITHUB_REPOSITORY" --pattern 'ZhangGua-v0.9-release.apk' --dir /tmp/public
+          test "$(sha256sum /tmp/public/ZhangGua-v0.9-release.apk | awk '{print $1}')" = "$APK_SHA256"
