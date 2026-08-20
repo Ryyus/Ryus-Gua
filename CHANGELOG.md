@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.1
+- 中文：统一所有起卦页面的底部状态区为手动正式起卦的安全布局，红色“正式起卦/爻位”提示统一上移并为爻象保留相同空间，修复文字与爻象重叠。
+- 中文：普通起卦、正式起卦均新增与历史页一致的右上角“返回”按钮；返回会安全取消当前起卦并回到主页。
+- 中文：系统返回键同样统一为取消当前起卦；为经典铜钱动画增加取消守卫，避免退出后残留动画继续落爻。
+- English: Unified the bottom status area across all casting modes to the safe manual Formal Casting layout, preventing red status text from overlapping the hexagram stack.
+- English: Added the same top-right Back control used by History to both normal and Formal Casting; Back safely cancels the current cast and returns home.
+- English: System Back now follows the same cancellation behavior, and classic animation stops cleanly when a cast is cancelled.
+
 ## 1.1.0
 - 中文：新增完全离线的规则解卦页；点击“解卦”先显示本地结果，再由用户选择是否调用 AI。
 - 中文：正式起卦入口移至主页，普通起卦与正式起卦分开显示；交互设置不再重复放置正式起卦按钮。
