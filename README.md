@@ -10,7 +10,7 @@
 ## Current release
 
 - App: 掌卦
-- Version: `0.8.0` (`versionCode 8`)
+- Version: `0.9.0` (`versionCode 9`)
 - Android package: `com.zhanggua.app`
 - minSdk: 26
 - targetSdk / compileSdk: 35
@@ -27,8 +27,11 @@
 - 音效 / 震动 / 动画模式可配置
 - 紧凑分组设置页
 - AI 解卦：OpenAI、DeepSeek、Gemini、通义千问、Kimi、自定义兼容端点
-- API Key 使用 Android Keystore 保护后保存在本机
-- 应用内版本检查
+- **AI 流式输出**：Responses API / Chat Completions 生成过程中逐段显示
+- **服务商独立配置**：每个 AI 服务商分别保存自己的 API Key、Endpoint、模型和协议
+- API Key 使用 Android Keystore AES/GCM 保护后保存在本机
+- AI 设置保存后立即回读校验，避免“保存成功但实际未生效”
+- 应用内版本检查，v0.9 起直接使用本仓库的更新通道
 
 ## Repository layout
 
@@ -65,9 +68,9 @@ Release signing is intentionally external to this public repository. When the fo
 
 The app name and package ID are intentionally retained to preserve the established Android identity and future in-place upgrades.
 
-## Update-channel migration
+## Update channel
 
-Released v0.8 builds still query a legacy compatibility metadata path under `Ryyus.github.io` because that endpoint is already shipped on users' devices. New releases and release assets live in this repository. The next signed app release will switch `UpdateChecker` to this repository directly; the legacy metadata file can then remain only as a compatibility redirect/channel for older installs.
+v0.9 and later query this repository directly through `update/latest.json`. Older released builds may still query the legacy compatibility metadata path under `Ryyus.github.io`; that legacy file is retained only so existing v0.6–v0.8 installations can discover releases from this repository.
 
 ## Reference / Attribution
 
