@@ -3,3 +3,4 @@ legacy_sha256=dda0eb234b2d0cfd2a6573b8c4d79d718bc673a84948ff1bd3002dccc5b8a3dc
 certificate_sha256=14b5ac4ba6814aa62ee254b7a7f6454707350f32cc695f8f240d2f28250f8c5d
 unsigned_run_id=32376491762
 unsigned_artifact=v1.1.0-final-unsigned-release-candidate
+standard_validation=process_and_foreground_v2
