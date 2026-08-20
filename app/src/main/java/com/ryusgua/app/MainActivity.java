@@ -371,11 +371,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (state == State.OFFLINE) { state = State.RESULT; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
             if (state == State.AI) { state = State.OFFLINE; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
             if (state == State.RESULT) { state = State.IDLE; loadedFromHistory = false; postInvalidateOnAnimation(); return true; }
-            if (state == State.CASTING && formalCastingActive) {
-                cancelFormalCasting();
-                state = State.IDLE;
-                postInvalidateOnAnimation();
-                Toast.makeText(getContext(), "正式起卦已取消", Toast.LENGTH_SHORT).show();
+            if (state == State.CASTING) {
+                cancelCurrentCasting();
                 return true;
             }
             return false;
@@ -568,6 +565,8 @@ public class MainActivity extends Activity implements SensorEventListener {
         private void drawCasting(Canvas c, float w, float h) {
             float cx = w / 2f;
             int shown = Math.min(castCount + 1, 6);
+            backButton.set(w - dp(78), dp(86), w - dp(20), dp(116));
+            button(c, backButton, "返回", MUTED, false, 9);
             if (formalCastingActive) {
                 text(c, "正式起卦 · " + formatClock(System.currentTimeMillis()), cx, dp(104), 10.5f, GOLD, Paint.Align.CENTER, true);
                 text(c, String.format(Locale.CHINA, "第 %d / 6 爻", shown), cx, dp(126), 12, FG, Paint.Align.CENTER, true);
@@ -579,7 +578,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 for (int i = 0; i < 3; i++) drawCoin(c, cx + dp((i - 1) * 72), coinY, currentCoins[i], i);
             }
 
-            float reserved = manualCasting ? dp(145) : dp(80);
+            float reserved = dp(145);
             RectF frame = new RectF(dp(35), dp(234), w - dp(35), h - reserved);
             panel(c, frame);
             String castModeText = formalCastingActive ? (manualCasting ? "六爻 / 正式定时 · 手动确认" : "六爻 / 正式定时 · 自动")
@@ -587,8 +586,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             text(c, castModeText, frame.left + dp(14), frame.top + dp(24), 9.5f, MUTED, Paint.Align.LEFT, false);
             drawStack(c, frame.centerX(), frame.bottom - dp(24), lines, castCount, false, dp(78), dp(32));
 
+            if (!toastLine.isEmpty()) text(c, toastLine, cx, h - dp(94), 10.5f, RED, Paint.Align.CENTER, true);
             if (manualCasting || ANIM_PHYSICS.equals(coinAnimationMode)) {
-                if (!toastLine.isEmpty()) text(c, toastLine, cx, h - dp(94), 10.5f, RED, Paint.Align.CENTER, true);
                 primaryButton.set(dp(28), h - dp(72), w - dp(28), h - dp(20));
                 String label;
                 if (castCount >= 6) label = "成卦中…";
@@ -596,8 +595,6 @@ public class MainActivity extends Activity implements SensorEventListener {
                 else if (formalCastingActive && manualCasting) label = formalAwaitingManual ? "点击 · 掷此爻" : "等待定时…";
                 else label = manualCasting ? "点击 · 下一爻" : "自动 · 下一爻";
                 button(c, primaryButton, label, lineAnimating ? MUTED : GOLD, true, 11.5f);
-            } else {
-                if (!toastLine.isEmpty()) text(c, toastLine, cx, h - dp(42), 11, RED, Paint.Align.CENTER, true);
             }
             // Physics coins are drawn last so they visibly fly out over the launch button and panel.
             if (ANIM_PHYSICS.equals(coinAnimationMode) && physicsActive) drawPhysicsCoins(c);
@@ -1109,8 +1106,13 @@ public class MainActivity extends Activity implements SensorEventListener {
                 if (experienceButton.contains(x, y)) { showSettingsDialog(false); return true; }
                 if (historyButton.contains(x, y)) { state = State.HISTORY; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
             }
-            if (state == State.CASTING && manualCasting) {
-                if (primaryButton.contains(x, y) && !lineAnimating && castCount < 6) {
+            if (state == State.CASTING) {
+                if (backButton.contains(x, y)) {
+                    haptic(HapticFeedbackConstants.CLOCK_TICK);
+                    cancelCurrentCasting();
+                    return true;
+                }
+                if (manualCasting && primaryButton.contains(x, y) && !lineAnimating && castCount < 6) {
                     if (formalCastingActive && !formalAwaitingManual) {
                         Toast.makeText(getContext(), "正式起卦 · 请等待定时提示", Toast.LENGTH_SHORT).show();
                         return true;
@@ -1210,6 +1212,17 @@ public class MainActivity extends Activity implements SensorEventListener {
             handler.removeCallbacksAndMessages(null);
         }
 
+        private void cancelCurrentCasting() {
+            boolean wasFormal = formalCastingActive;
+            cancelFormalCasting();
+            lineAnimating = false;
+            physicsActive = false;
+            toastLine = "";
+            state = State.IDLE;
+            postInvalidateOnAnimation();
+            Toast.makeText(getContext(), wasFormal ? "正式起卦已取消" : "起卦已取消", Toast.LENGTH_SHORT).show();
+        }
+
         private String formatClock(long epochMs) {
             return new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date(epochMs));
         }
@@ -1230,6 +1243,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             final int[] lastBucket = {-1};
             Runnable flip = new Runnable() {
                 @Override public void run() {
+                    if (state != State.CASTING || !lineAnimating) return;
                     float t = Math.min(1f, (SystemClock.uptimeMillis() - started) / 1080f);
                     coinPhase = t * (float) (Math.PI * 8.0);
                     int bucket = Math.min(11, (int) (t * 12f));
