@@ -1,0 +1,38 @@
+name: Apply v1.1 branch transform
+
+on:
+  push:
+    branches: ["v1.1.0-dev"]
+
+permissions:
+  contents: write
+
+jobs:
+  transform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v1.1.0-dev
+          fetch-depth: 0
+      - name: Apply source transformation
+        run: python3 tools/apply_v110.py
+      - name: Validate transformed source
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "versionCode 110" app/build.gradle
+          grep -q "versionName '1.1.0'" app/build.gradle
+          grep -q "State.OFFLINE" app/src/main/java/com/ryusgua/app/MainActivity.java
+          grep -q "BuildConfig.VERSION_NAME" app/src/main/java/com/ryusgua/app/MainActivity.java
+          ! grep -q "0.9.3" app/src/main/java/com/ryusgua/app/MainActivity.java
+      - name: Remove one-time transformation files and commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f tools/apply_v110.py .v110-trigger .github/workflows/apply-v110-branch.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Add offline-first readings and dynamic version display'
+          git push origin HEAD:v1.1.0-dev
