@@ -63,3 +63,24 @@ jobs:
           gh release download v0.8.0 --repo "$GITHUB_REPOSITORY" --pattern 'ZhangGua-v0.8-release.apk' --dir /tmp/verify-public
           PUBLIC_SHA=$(sha256sum /tmp/verify-public/ZhangGua-v0.8-release.apk | awk '{print $1}')
           test "$PUBLIC_SHA" = "$APK_SHA256"
+
+      - name: Mark migration verified
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > MIGRATION_STATUS.md <<EOF
+          # Migration status
+
+          Repository migration to **Ryyus/Ryus-Gua** verified successfully.
+
+          - Release: v0.8.0
+          - Android app name: 掌卦
+          - Package: com.zhanggua.app
+          - APK SHA-256: $APK_SHA256
+          - Verification: release asset downloaded back from this repository and SHA-256 matched.
+          EOF
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add MIGRATION_STATUS.md
+          git diff --cached --quiet || git commit -m 'Mark v0.8 migration verified'
+          git push origin main
