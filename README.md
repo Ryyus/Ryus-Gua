@@ -10,7 +10,7 @@
 ## Current release
 
 - App: 掌卦
-- Version: `0.9.1` (`versionCode 10`)
+- Version: `0.9.2` (`versionCode 11`)
 - Android package: `com.zhanggua.app`
 - minSdk: 26
 - targetSdk / compileSdk: 35
@@ -31,6 +31,8 @@
 - 紧凑分组设置页，AI / 交互设置保存后摘要即时刷新
 - AI 解卦：OpenAI、DeepSeek、Gemini、通义千问、Kimi、自定义兼容端点
 - **AI 流式输出**：Responses API / Chat Completions 生成过程中逐段显示
+- **可折叠思考过程**：AI reasoning/thinking 与最终解读分离，默认折叠，可由用户展开查看
+- **精简解卦**：提示词将最终解读控制在约 300–450 个中文字符，支持的模型使用较低推理强度 / verbosity
 - **服务商独立配置**：每个 AI 服务商分别保存自己的 API Key、Endpoint、模型和协议
 - API Key 使用 Android Keystore AES/GCM 保护后保存在本机
 - AI 设置保存后立即回读校验，避免“保存成功但实际未生效”

@@ -1,9 +1,9 @@
 {
-  "versionCode": 10,
-  "versionName": "0.9.1",
-  "title": "掌卦 v0.9.1 可用",
-  "notes": "修复设置摘要刷新；新增正式起卦定时六爻、手动3秒自动补掷、可选垂直翻转；英文品牌更新为 Ryu's Gua。",
-  "releasePage": "https://github.com/Ryyus/Ryus-Gua/releases/tag/v0.9.1",
-  "apkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v0.9.1/ZhangGua-v0.9.1-release.apk",
-  "sha256": "ec319f10ce93b64655cca16362b00159de857cdaeb9a63e75000f3d287dde88e"
+  "versionCode": 11,
+  "versionName": "0.9.2",
+  "title": "掌卦 v0.9.2 可用",
+  "notes": "AI 思考过程与最终解读分离，默认折叠并可手动展开；缩短解读篇幅，并降低支持模型的思考强度。",
+  "releasePage": "https://github.com/Ryyus/Ryus-Gua/releases/tag/v0.9.2",
+  "apkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v0.9.2/ZhangGua-v0.9.2-release.apk",
+  "sha256": "2cfbbb0bdaf69819036a749adc1371d4b7b1d7c3d9e5826f169651ee517ee37e"
 }
