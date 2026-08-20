@@ -10,7 +10,7 @@
 ## Current release
 
 - App: 掌卦
-- Version: `0.9.0` (`versionCode 9`)
+- Version: `0.9.1` (`versionCode 10`)
 - Android package: `com.zhanggua.app`
 - minSdk: 26
 - targetSdk / compileSdk: 35
@@ -19,19 +19,24 @@
 ## Highlights
 
 - 三钱法六爻起卦，6/7/8/9 与动爻、之卦逻辑
+- **正式起卦**：下一整分起初爻，随后在 +10/+20/+30/+40/+50 秒依次起出后五爻
+- 正式起卦配合手动逐爻模式时，每个节点先提醒；3 秒无操作自动补掷
 - 经典浮动 / 物理飞出两套铜钱动画
+- 可选 **垂直翻转** 铜钱动画
 - 物理动画包含独立初速度、重力、阻尼、旋转、简单币间碰撞与弹簧收束
 - 全面屏、刘海/挖孔、Android 手势导航底部安全区适配
 - 经文、历史、复制、分享、重新起卦
 - 逐爻手动投掷与摇动起卦
 - 音效 / 震动 / 动画模式可配置
-- 紧凑分组设置页
+- 紧凑分组设置页，AI / 交互设置保存后摘要即时刷新
 - AI 解卦：OpenAI、DeepSeek、Gemini、通义千问、Kimi、自定义兼容端点
 - **AI 流式输出**：Responses API / Chat Completions 生成过程中逐段显示
 - **服务商独立配置**：每个 AI 服务商分别保存自己的 API Key、Endpoint、模型和协议
 - API Key 使用 Android Keystore AES/GCM 保护后保存在本机
 - AI 设置保存后立即回读校验，避免“保存成功但实际未生效”
-- 应用内版本检查，v0.9 起直接使用本仓库的更新通道
+- 可见英文品牌使用 **Ryu's Gua**，中文应用名继续为 **掌卦**
+- 设置页显示作者信息
+- 应用内版本检查直接使用本仓库的更新通道
 
 ## Repository layout
 
