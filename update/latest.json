@@ -1,9 +1,9 @@
 {
-  "versionCode": 110,
-  "versionName": "1.1.0",
-  "title": "柳之卦 v1.1.0 / Ryu's Gua 1.1.0",
-  "notes": "新增离线解卦：先本地规则解读，再可选 AI；正式起卦入口移至主页；修复应用内旧版本号显示。 / Offline reading first, optional AI second; Formal Casting moved to the home screen; fixed stale in-app version labels.",
-  "releasePage": "https://github.com/Ryyus/Ryus-Gua/releases/tag/v1.1.0",
-  "apkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.1.0/RyusGua-v1.1.0-standard.apk",
-  "legacyApkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.1.0/RyusGua-v1.1.0-legacy.apk"
+  "versionCode": 111,
+  "versionName": "1.1.1",
+  "title": "柳之卦 v1.1.1 / Ryu's Gua 1.1.1",
+  "notes": "统一起卦页底部提示布局，修复红字与爻象重叠；普通/正式起卦均新增右上角返回按钮并可安全取消当前起卦。 / Unified casting-page status layout to prevent overlap; added a consistent top-right Back button for both normal and Formal Casting with safe cancellation.",
+  "releasePage": "https://github.com/Ryyus/Ryus-Gua/releases/tag/v1.1.1",
+  "apkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.1.1/RyusGua-v1.1.1-standard.apk",
+  "legacyApkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.1.1/RyusGua-v1.1.1-legacy.apk"
 }

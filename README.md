@@ -1,11 +1,18 @@
 # 柳之卦 · Ryu's Gua
 
-> **正式版 / Stable release: 1.1.0**  
+> **正式版 / Stable release: 1.1.1**  
 > **Android package:** `com.ryusgua.app`
 
 ## 中文
 
 **柳之卦（Ryu's Gua）** 是一款以三钱六爻为核心交互的 Android《周易》文化应用。1.0 起项目与 Android 应用统一使用“柳之卦”这一名称，并启用全新的包名 `com.ryusgua.app`。
+
+### 1.1.1 维护更新
+
+- 所有起卦页面统一使用手动正式起卦的底部安全布局，红色状态提示不再与爻象重叠。
+- 普通起卦与正式起卦均使用与历史页一致的右上角 **返回** 按钮。
+- 返回会安全取消当前起卦并回到主页；系统返回键执行同样逻辑。
+- 经典铜钱动画在取消起卦后会立即停止，不会继续后台落爻。
 
 ### 1.1 重要变化
 
@@ -57,6 +64,13 @@ gradle assembleStandardDebug assembleLegacyDebug
 ## English
 
 **Ryu's Gua (柳之卦)** is an Android I Ching / Zhou Yi cultural app built around the traditional three-coin, six-line casting interaction. Starting with 1.0, the project and the Android app share one formal identity and use the new package name `com.ryusgua.app`.
+
+### What's new in 1.1.1
+
+- Unified all casting screens to the safer manual Formal Casting bottom layout so red status text no longer overlaps the hexagram stack.
+- Added the same top-right **Back** button used by History to both normal and Formal Casting screens.
+- Back safely cancels the active cast and returns home; the system Back action now follows the same behavior.
+- Classic coin animation stops cleanly when casting is cancelled instead of continuing to settle a line in the background.
 
 ### What's new in 1.1
 
