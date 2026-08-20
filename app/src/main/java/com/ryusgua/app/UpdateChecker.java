@@ -1,4 +1,4 @@
-package com.zhanggua.app;
+package com.ryusgua.app;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -22,7 +22,7 @@ import java.nio.charset.StandardCharsets;
 /** Lightweight update checker for the public Ryu's Gua release channel. */
 final class UpdateChecker {
     private static final String META_URL = "https://raw.githubusercontent.com/Ryyus/Ryus-Gua/main/update/latest.json";
-    private static final String PREF = "zhanggua_updates";
+    private static final String PREF = "ryusgua_updates";
     private static final long AUTO_INTERVAL_MS = 12L * 60L * 60L * 1000L;
 
     private UpdateChecker() {}

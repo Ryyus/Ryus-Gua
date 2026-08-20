@@ -1,4 +1,4 @@
-package com.zhanggua.app;
+package com.ryusgua.app;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -14,7 +14,7 @@ import java.util.UUID;
 
 /** Persistent divination history. Pinned entries never count toward the 30-entry rolling limit. */
 final class HistoryStore {
-    private static final String PREFS = "zhang_gua_history";
+    private static final String PREFS = "ryusgua_history_v1";
     private static final String KEY = "entries";
     private static final int UNPINNED_LIMIT = 30;
     private static final int MAX_NOTE = 300;
@@ -64,8 +64,6 @@ final class HistoryStore {
         return entry;
     }
 
-    /** Backward-compatible overload for callers predating formal-cast metadata. */
-    static Entry add(Context context, int[] lines) { return add(context, lines, false); }
 
     static Entry find(Context context, String id) {
         if (id == null || id.isEmpty()) return null;
@@ -135,7 +133,7 @@ final class HistoryStore {
                 if (!ok) continue;
                 long time = o.optLong("time", 0L);
                 String id = o.optString("id", "");
-                if (id.isEmpty()) id = legacyId(time, lines);
+                if (id.isEmpty()) continue;
                 out.add(new Entry(id, time, lines,
                         o.optBoolean("formal", false),
                         o.optBoolean("pinned", false),
@@ -158,8 +156,6 @@ final class HistoryStore {
         save(context, kept);
     }
 
-    /** v0.9.2 compatibility: clearing history now intentionally preserves pinned items. */
-    static void clear(Context context) { clearUnpinned(context); }
 
     private static void prune(List<Entry> entries) {
         sort(entries);
@@ -211,9 +207,4 @@ final class HistoryStore {
         return v.length() <= max ? v : v.substring(0, max);
     }
 
-    private static String legacyId(long time, int[] lines) {
-        StringBuilder sb = new StringBuilder("legacy-").append(time);
-        for (int v : lines) sb.append('-').append(v);
-        return sb.toString();
-    }
 }

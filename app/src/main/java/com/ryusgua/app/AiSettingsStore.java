@@ -1,4 +1,4 @@
-package com.zhanggua.app;
+package com.ryusgua.app;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -61,11 +61,9 @@ final class AiSettingsStore {
         }
     }
 
-    private static final String PREFS = "ai_settings_v2";
-    private static final String LEGACY_PREFS = "ai_settings_v1";
-    private static final String KEY_ALIAS = "zhanggua_ai_api_key_v1";
+    private static final String PREFS = "ryusgua_ai_settings_v1";
+    private static final String KEY_ALIAS = "ryusgua_ai_api_key_v1";
     private static final String K_ACTIVE_PROVIDER = "active_provider";
-    private static final String K_MIGRATED = "migrated_from_v1";
 
     private static final String F_ENDPOINT = "endpoint";
     private static final String F_MODEL = "model";
@@ -73,25 +71,16 @@ final class AiSettingsStore {
     private static final String F_KEY_CT = "key_ct";
     private static final String F_KEY_IV = "key_iv";
 
-    // v0.8 legacy keys.
-    private static final String OLD_ENDPOINT = "endpoint";
-    private static final String OLD_MODEL = "model";
-    private static final String OLD_MODE = "mode";
-    private static final String OLD_PROVIDER = "provider";
-    private static final String OLD_KEY_CT = "key_ct";
-    private static final String OLD_KEY_IV = "key_iv";
 
     private AiSettingsStore() {}
 
     static Settings load(Context context) {
-        migrateLegacyIfNeeded(context);
         SharedPreferences p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String provider = normalizeProvider(p.getString(K_ACTIVE_PROVIDER, PROVIDER_OPENAI));
         return loadProviderInternal(context, provider);
     }
 
     static Settings loadProvider(Context context, String provider) {
-        migrateLegacyIfNeeded(context);
         return loadProviderInternal(context, normalizeProvider(provider));
     }
 
@@ -116,7 +105,6 @@ final class AiSettingsStore {
     }
 
     static void save(Context context, String endpoint, String apiKey, String model, String mode, String provider) throws Exception {
-        migrateLegacyIfNeeded(context);
         provider = normalizeProvider(provider);
         endpoint = PROVIDER_CUSTOM.equals(provider)
                 ? normalizeEndpoint(endpoint) : providerEndpoint(provider);
@@ -146,7 +134,6 @@ final class AiSettingsStore {
     }
 
     static void setActiveProvider(Context context, String provider) {
-        migrateLegacyIfNeeded(context);
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putString(K_ACTIVE_PROVIDER, normalizeProvider(provider)).commit();
     }
@@ -157,7 +144,6 @@ final class AiSettingsStore {
     }
 
     static void clearApiKey(Context context, String provider) {
-        migrateLegacyIfNeeded(context);
         provider = normalizeProvider(provider);
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .remove(key(provider, F_KEY_CT))
@@ -201,32 +187,6 @@ final class AiSettingsStore {
         return generator.generateKey();
     }
 
-    private static void migrateLegacyIfNeeded(Context context) {
-        SharedPreferences target = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        if (target.getBoolean(K_MIGRATED, false)) return;
-
-        SharedPreferences legacy = context.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE);
-        String endpoint = legacy.getString(OLD_ENDPOINT, DEFAULT_ENDPOINT);
-        String provider = normalizeProvider(legacy.getString(OLD_PROVIDER, inferProvider(endpoint)));
-        String model = legacy.getString(OLD_MODEL, providerModel(provider));
-        String mode = legacy.getString(OLD_MODE, providerMode(provider));
-        String ct = legacy.getString(OLD_KEY_CT, null);
-        String iv = legacy.getString(OLD_KEY_IV, null);
-
-        SharedPreferences.Editor e = target.edit()
-                .putBoolean(K_MIGRATED, true)
-                .putString(K_ACTIVE_PROVIDER, provider)
-                .putString(key(provider, F_ENDPOINT), normalizeEndpoint(endpoint))
-                .putString(key(provider, F_MODEL), model == null || model.trim().isEmpty() ? providerModel(provider) : model.trim())
-                .putString(key(provider, F_MODE), MODE_CHAT.equals(mode) ? MODE_CHAT : MODE_RESPONSES);
-        // Same Android Keystore master alias is retained, so v0.8 ciphertext can be copied
-        // directly into the selected provider slot without exposing the plaintext key.
-        if (ct != null && iv != null) {
-            e.putString(key(provider, F_KEY_CT), ct);
-            e.putString(key(provider, F_KEY_IV), iv);
-        }
-        e.commit();
-    }
 
     private static String key(String provider, String field) {
         return "provider." + normalizeProvider(provider) + "." + field;

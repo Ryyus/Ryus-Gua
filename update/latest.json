@@ -1,13 +1,9 @@
 {
-  "versionCode": 12,
-  "versionName": "0.9.3",
-  "title": "掌卦 v0.9.3 可用",
-  "notes": "动画时长统一；正式起卦自动返回主界面；预设 AI Endpoint 只读；历史新增 AI 存档、秒级时间、正式起卦标记、PIN 与备注；新增 Android 6.0+ Legacy APK。",
-  "releasePage": "https://github.com/Ryyus/Ryus-Gua/releases/tag/v0.9.3",
-  "apkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v0.9.3/ZhangGua-v0.9.3-release.apk",
-  "legacyApkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v0.9.3/ZhangGua-v0.9.3-legacy.apk",
-  "minSdk": 26,
-  "legacyMinSdk": 23,
-  "sha256": "2305d48af0eb6c38e77b92dc9f34cda40e245dc6d2905797252f50c45f3f1bea",
-  "legacySha256": "d86b6ee4c4440d0d9ad6f765b01c53cfc6c3155eefbc0c9704b51ffb3957645f"
+  "versionCode": 100,
+  "versionName": "1.0.0",
+  "title": "柳之卦 v1.0.0 正式版 / Ryu's Gua 1.0.0",
+  "notes": "1.0 使用全新包名 com.ryusgua.app 与应用名柳之卦；不支持 0.9.x 覆盖升级。Standard 支持 Android 8.0+，Legacy 支持 Android 6.0+。 / New app identity com.ryusgua.app; no in-place upgrade from 0.9.x. Standard: Android 8.0+, Legacy: Android 6.0+.",
+  "releasePage": "https://github.com/Ryyus/Ryus-Gua/releases/tag/v1.0.0",
+  "apkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.0.0/RyusGua-v1.0.0-standard.apk",
+  "legacyApkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.0.0/RyusGua-v1.0.0-legacy.apk"
 }

@@ -1,4 +1,4 @@
-package com.zhanggua.app;
+package com.ryusgua.app;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
