@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0
+- 中文：主页普通起卦主按钮由“按下成卦”改为“一念既起 · 六爻将成”；手动逐爻模式仍保留“按下 · 掷第一爻”。
+- 中文：应用图标重绘为无边框现代扁平风格，采用深绿底、淡色流线、米白六爻与灰绿柳枝，延续主页淡白色条纹的视觉语言。
+- 中文：Legacy 启动图标与 Android 8.0+ Adaptive Icon 同步更新；版本提升至 1.2.0 / versionCode 120。
+- English: Changed the normal home casting CTA to “一念既起 · 六爻将成” while preserving the manual first-line prompt.
+- English: Reworked the launcher icon into a borderless modern flat willow + six-line design with subtle pale stripes, shared across legacy and adaptive icon paths.
+- English: Bumped the app to versionName 1.2.0 / versionCode 120.
+
 ## 1.1.2
 - 中文：新增 7 套可切换开屏样式：经典初版、A 电子法器启动、B 古意极简、C 周易原典、D 卜筮仪式、E 终端自检、F 六爻启动序列。
 - 中文：当前经典初版完整保留并继续作为默认；开屏样式在“设置 → 交互与动画”中选择，保存后下次启动生效。
