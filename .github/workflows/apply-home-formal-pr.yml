@@ -6,6 +6,7 @@ on:
     paths:
       - ".home-formal-trigger"
       - "tools/move_formal_home.py"
+      - "tools/run_move_formal_home.py"
 
 permissions:
   contents: write
@@ -22,8 +23,8 @@ jobs:
       - name: Apply homepage move
         run: |
           set -euo pipefail
-          python3 tools/move_formal_home.py
-          rm -f .home-formal-trigger tools/move_formal_home.py .github/workflows/apply-home-formal-v110.yml
+          python3 tools/run_move_formal_home.py
+          rm -f .home-formal-trigger tools/move_formal_home.py tools/run_move_formal_home.py .github/workflows/apply-home-formal-v110.yml
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A
