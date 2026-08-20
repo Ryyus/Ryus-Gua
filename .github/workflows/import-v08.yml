@@ -1,4 +1,4 @@
-name: Import ZhangGua v0.8 into Ryu's Gua
+name: Finalize ZhangGua v0.8 migration
 
 on:
   push:
@@ -9,162 +9,33 @@ permissions:
   contents: write
 
 jobs:
-  import:
+  finalize:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout new public repository
+      - name: Checkout new repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Download verified legacy v0.8 assets
+      - name: Download and verify legacy v0.8 assets
         shell: bash
         run: |
           set -euo pipefail
           curl -fL --retry 3 --retry-delay 2 \
-            https://github.com/Ryyus/Ryyus.github.io/releases/download/zhanggua-v0.8/ZhangGuaAndroid-v0.8-source.zip \
-            -o /tmp/v08-source.zip
-          curl -fL --retry 3 --retry-delay 2 \
             https://github.com/Ryyus/Ryyus.github.io/releases/download/zhanggua-v0.8/ZhangGua-v0.8-release.apk \
             -o /tmp/ZhangGua-v0.8-release.apk
-          test -s /tmp/v08-source.zip
-          test -s /tmp/ZhangGua-v0.8-release.apk
           unzip -t /tmp/ZhangGua-v0.8-release.apk >/dev/null
           ACTUAL=$(sha256sum /tmp/ZhangGua-v0.8-release.apk | awk '{print $1}')
           test "$ACTUAL" = '582159cde0b2fd2c469184e99e4c1db44719547c101ddcbe9e21f31eba1e780b'
           echo "APK_SHA256=$ACTUAL" >> "$GITHUB_ENV"
 
-      - name: Import Android source tree
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -rf /tmp/v08src
-          mkdir -p /tmp/v08src
-          unzip -q /tmp/v08-source.zip -d /tmp/v08src
-          rsync -a \
-            --exclude '.git/' \
-            --exclude '.github/' \
-            --exclude 'README.md' \
-            --exclude 'CHANGELOG.md' \
-            --exclude 'THIRD_PARTY_NOTICES.md' \
-            --exclude 'docs/' \
-            --exclude 'update/' \
-            --exclude '.gitignore' \
-            --exclude 'REPOSITORY_PLAN.md' \
-            /tmp/v08src/ ./
-
-          cat > settings.gradle <<'EOF'
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-
-          rootProject.name = "RyusGua"
-          include ':app'
-          EOF
-
-          cat > app/build.gradle <<'EOF'
-          plugins {
-              id 'com.android.application'
-          }
-
-          android {
-              namespace 'com.zhanggua.app'
-              compileSdk 35
-
-              defaultConfig {
-                  applicationId 'com.zhanggua.app'
-                  minSdk 26
-                  targetSdk 35
-                  versionCode 8
-                  versionName '0.8.0'
-              }
-
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_11
-                  targetCompatibility JavaVersion.VERSION_11
-              }
-
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-                  }
-              }
-          }
-
-          def hasReleaseSigning = [
-                  "ZG_STORE_FILE",
-                  "ZG_STORE_PASSWORD",
-                  "ZG_KEY_ALIAS",
-                  "ZG_KEY_PASSWORD"
-          ].every { project.hasProperty(it) }
-
-          if (hasReleaseSigning) {
-              android {
-                  signingConfigs {
-                      release {
-                          storeFile file(project.property("ZG_STORE_FILE"))
-                          storePassword project.property("ZG_STORE_PASSWORD")
-                          keyAlias project.property("ZG_KEY_ALIAS")
-                          keyPassword project.property("ZG_KEY_PASSWORD")
-                      }
-                  }
-                  buildTypes {
-                      release {
-                          signingConfig signingConfigs.release
-                      }
-                  }
-              }
-          }
-          EOF
-
-          grep -q 'applicationId .com.zhanggua.app.' app/build.gradle
-          grep -q 'versionName .0.8.0.' app/build.gradle
-          grep -q '掌卦' app/src/main/res/values/strings.xml
-          grep -q 'Ryyus.github.io/main/zhanggua/latest.json' app/src/main/java/com/zhanggua/app/UpdateChecker.java
-
-      - name: Commit imported source
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add app build.gradle gradle.properties settings.gradle
-          git diff --cached --quiet || git commit -m "Import 掌卦 Android v0.8 source"
-          git push origin main
-
-      - name: Build public debug APK
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - name: Verify public source builds
-        shell: bash
-        run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
-          gradle assembleDebug
-
       - name: Create repository-native source archive
         shell: bash
         run: |
           set -euo pipefail
+          test -s app/src/main/java/com/zhanggua/app/MainActivity.java
+          grep -q 'versionName .0.8.0.' app/build.gradle
+          grep -q '掌卦' app/src/main/res/values/strings.xml
           mkdir -p /tmp/release-assets
           cp /tmp/ZhangGua-v0.8-release.apk /tmp/release-assets/ZhangGua-v0.8-release.apk
           printf '%s  %s\n' "$APK_SHA256" 'ZhangGua-v0.8-release.apk' > /tmp/release-assets/sha256.txt
@@ -185,7 +56,7 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --target main \
             --title "柳之卦 · Ryu's Gua v0.8 · 掌卦 Android" \
-            --notes "Repository migration release. Android application name remains 掌卦 and package remains com.zhanggua.app. v0.8 includes classic floating / physics launch coin animations and compact grouped settings. Reference/attribution: eXphinx related implementation/post, zg.yichenlab.com related web implementation, and Johnson-Jia/liuyao-divination (MIT) for ZhouYi/divination reference data. APK SHA-256: $APK_SHA256"
+            --notes "Repository migration release. Android application name remains 掌卦 and package remains com.zhanggua.app. v0.8 includes classic floating / physics launch coin animations and compact grouped settings. References: eXphinx related implementation/post; zg.yichenlab.com related web implementation; Johnson-Jia/liuyao-divination (MIT) for ZhouYi/divination reference data. APK SHA-256: $APK_SHA256"
 
           rm -rf /tmp/verify-public
           mkdir -p /tmp/verify-public
