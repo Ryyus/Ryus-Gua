@@ -11,7 +11,7 @@
 
 - 全新 Android 应用身份：`com.ryusgua.app`
 - 应用名称统一为 **柳之卦**
-- 1.0 不再承担 0.9.x 的数据或覆盖安装兼容；旧版与 1.0 可以并存
+- 1.0 不再承担 0.9.x 的数据或覆盖安装兼容；旧版与 1.0 可以并存，安装 1.0 不会覆盖旧包
 - 保留 Standard / Legacy 双 APK：Standard 面向 Android 8.0+；Legacy 支持 Android 6.0+
 - 清理旧版本 AI 设置迁移、旧历史兼容入口和旧命名空间
 
@@ -54,7 +54,7 @@ gradle assembleStandardDebug assembleLegacyDebug
 
 - New Android application identity: `com.ryusgua.app`
 - App name unified as **柳之卦 / Ryu's Gua**
-- 1.0 intentionally drops in-place/data migration compatibility with 0.9.x; old builds and 1.0 may coexist
+- 1.0 intentionally drops in-place/data migration compatibility with 0.9.x; old builds and 1.0 may coexist, and installing 1.0 does not overwrite the old package
 - Standard and Legacy APKs remain available: Standard targets Android 8.0+, Legacy supports Android 6.0+
 - Removed pre-1.0 AI migration helpers, legacy history compatibility entry points, and the old Java namespace
 
