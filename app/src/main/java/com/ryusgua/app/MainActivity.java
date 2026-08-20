@@ -154,7 +154,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         private static final int PANEL = Color.rgb(17, 20, 17);
         private static final int GRID = Color.rgb(29, 35, 29);
 
-        private enum State { BOOT, IDLE, CASTING, RESULT, DETAIL, HISTORY, AI }
+        private enum State { BOOT, IDLE, CASTING, RESULT, DETAIL, HISTORY, OFFLINE, AI }
 
         private static final class CoinBody {
             float x, y, vx, vy, angle, angular, targetX, targetY, scale = 1f;
@@ -251,6 +251,16 @@ public class MainActivity extends Activity implements SensorEventListener {
                 requestApplyInsets();
             } catch (Throwable ignored) {}
             startBootAnimation();
+        }
+
+        private String appVersion() {
+            try {
+                String version = getContext().getPackageManager()
+                        .getPackageInfo(getContext().getPackageName(), 0).versionName;
+                return version == null || version.trim().isEmpty() ? "—" : version;
+            } catch (Throwable ignored) {
+                return "—";
+            }
         }
 
         private void startBootAnimation() {
@@ -357,7 +367,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (state == State.BOOT) return true;
             if (state == State.DETAIL) { state = State.RESULT; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
             if (state == State.HISTORY) { state = State.IDLE; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
-            if (state == State.AI) { state = State.RESULT; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
+            if (state == State.OFFLINE) { state = State.RESULT; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
+            if (state == State.AI) { state = State.OFFLINE; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
             if (state == State.RESULT) { state = State.IDLE; loadedFromHistory = false; postInvalidateOnAnimation(); return true; }
             if (state == State.CASTING && formalCastingActive) {
                 cancelFormalCasting();
@@ -476,6 +487,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 case RESULT: drawResult(c, contentW, contentH); break;
                 case DETAIL: drawDetail(c, contentW, contentH); break;
                 case HISTORY: drawHistory(c, contentW, contentH); break;
+                case OFFLINE: drawOffline(c, contentW, contentH); break;
                 case AI: drawAi(c, contentW, contentH); break;
             }
             c.restore();
@@ -503,7 +515,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             text(c, "HEX TERMINAL", w-dp(22), dp(44), 8.5f, MUTED, Paint.Align.RIGHT, false);
             line(c, dp(22), dp(58), w-dp(22), dp(58), GRID, 1);
             float y = h * .37f;
-            if (bootStep >= 1) text(c, "掌", cx-dp(22), y, 42, FG, Paint.Align.CENTER, true);
+            if (bootStep >= 1) text(c, "柳", cx-dp(22), y, 42, FG, Paint.Align.CENTER, true);
             if (bootStep >= 2) text(c, "卦", cx+dp(22), y, 42, GOLD, Paint.Align.CENTER, true);
             if (bootStep >= 3) {
                 text(c, "RYU\'S GUA", cx, y+dp(31), 10, MUTED, Paint.Align.CENTER, true);
@@ -515,12 +527,12 @@ public class MainActivity extends Activity implements SensorEventListener {
             paint.setStyle(Paint.Style.FILL); paint.setColor(GOLD);
             c.drawRect(barL+dp(2), barY+dp(2), barL+dp(2)+(barR-barL-dp(4))*bootSweep, barY+dp(6), paint);
             text(c, bootStep < 4 ? "INITIALIZING..." : "READY", cx, barY+dp(28), 8, bootStep<4?MUTED:GOLD, Paint.Align.CENTER, true);
-            text(c, "v0.9.3 / Ryu\'s Gua", cx, h-dp(36), 7.5f, MUTED, Paint.Align.CENTER, false);
+            text(c, "v" + appVersion() + " / Ryu\'s Gua", cx, h-dp(36), 7.5f, MUTED, Paint.Align.CENTER, false);
         }
 
         private void drawHeader(Canvas c, float w) {
             text(c, "柳之卦", dp(20), dp(41), 26, FG, Paint.Align.LEFT, true);
-            text(c, "RYU\'S GUA / 0.9.3", dp(20), dp(61), 9, MUTED, Paint.Align.LEFT, false);
+            text(c, "RYU\'S GUA / " + appVersion(), dp(20), dp(61), 9, MUTED, Paint.Align.LEFT, false);
             text(c, "易", w - dp(22), dp(43), 25, GOLD, Paint.Align.RIGHT, true);
             line(c, dp(20), dp(75), w - dp(20), dp(75), GOLD, 1);
         }
@@ -709,7 +721,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             settingsButton.set(w/2f+dp(5), y2, w-dp(20), y3-dp(7));
             primaryButton.set(dp(20), y3, w-dp(20), h-dp(8));
             button(c, auxLeftButton, "经文", GOLD, false, 11);
-            button(c, rightButton, (!aiText.trim().isEmpty() && currentHistoryId != null && !currentHistoryId.isEmpty()) ? "AI 已存" : "解卦", GOLD, true, 11);
+            button(c, rightButton, "解卦", GOLD, true, 11);
             button(c, auxRightButton, "历史", MUTED, false, 11);
             button(c, leftButton, "复制", FG, false, 10);
             button(c, settingsButton, "设置", MUTED, false, 10);
@@ -865,6 +877,32 @@ public class MainActivity extends Activity implements SensorEventListener {
                     .show();
         }
 
+
+        private void drawOffline(Canvas c, float w, float h) {
+            backButton.set(w - dp(78), dp(86), w - dp(20), dp(116));
+            button(c, backButton, "返回", MUTED, false, 9);
+            text(c, "离线解卦", dp(20), dp(108), 15, GOLD, Paint.Align.LEFT, true);
+            text(c, "OFFLINE / LOCAL RULES", dp(20), dp(124), 7.5f, MUTED, Paint.Align.LEFT, true);
+
+            c.save();
+            c.clipRect(0, dp(136), w, h - dp(82));
+            float y = dp(160) - scrollOffset;
+            y = wrapped(c, offlineReadingText(), dp(22), y, w - dp(44), 11.2f, FG, dp(20), false) + dp(24);
+            maxScroll = Math.max(0, y + scrollOffset - (h - dp(82)) + dp(20));
+            c.restore();
+
+            auxLeftButton.set(dp(20), h - dp(69), w / 2f - dp(5), h - dp(15));
+            auxRightButton.set(w / 2f + dp(5), h - dp(69), w - dp(20), h - dp(15));
+            button(c, auxLeftButton, "复制离线解读", FG, false, 9.5f);
+            boolean hasSavedAi = aiText != null && !aiText.trim().isEmpty()
+                    && currentHistoryId != null && !currentHistoryId.isEmpty();
+            button(c, auxRightButton, hasSavedAi ? "查看 AI 解卦" : "AI 解卦", GOLD, true, 10.5f);
+        }
+
+        private String offlineReadingText() {
+            return OfflineInterpreter.interpret(lines, zhouYi);
+        }
+
         private void drawAi(Canvas c, float w, float h) {
             backButton.set(w - dp(78), dp(86), w - dp(20), dp(116));
             clearButton.set(w - dp(148), dp(86), w - dp(88), dp(116));
@@ -994,7 +1032,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         @Override public boolean onTouchEvent(MotionEvent e) {
             float x = e.getX() - safeInsetLeft, y = e.getY() - safeInsetTop;
-            if ((state == State.DETAIL || state == State.HISTORY || state == State.AI)) {
+            if ((state == State.DETAIL || state == State.HISTORY || state == State.OFFLINE || state == State.AI)) {
                 if (e.getAction() == MotionEvent.ACTION_DOWN) {
                     downY = lastY = y; dragging = false; return true;
                 }
@@ -1009,9 +1047,16 @@ public class MainActivity extends Activity implements SensorEventListener {
                 }
                 if (e.getAction() == MotionEvent.ACTION_UP) {
                     if (!dragging && backButton.contains(x, y)) {
-                        if (state == State.DETAIL || state == State.AI) state = State.RESULT;
+                        if (state == State.DETAIL || state == State.OFFLINE) state = State.RESULT;
+                        else if (state == State.AI) state = State.OFFLINE;
                         else state = State.IDLE;
                         scrollOffset = 0; postInvalidateOnAnimation(); return true;
+                    }
+                    if (!dragging && state == State.OFFLINE && auxLeftButton.contains(x, y)) {
+                        copyOfflineReading(); return true;
+                    }
+                    if (!dragging && state == State.OFFLINE && auxRightButton.contains(x, y)) {
+                        startAiOrConfigure(); return true;
                     }
                     if (!dragging && state == State.AI && reasoningToggleButton.contains(x, y) && !aiReasoning.isEmpty()) {
                         aiReasoningExpanded = !aiReasoningExpanded;
@@ -1077,7 +1122,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 if (auxLeftButton.contains(x, y)) { pulse(10, 60); state = State.DETAIL; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
                 if (auxRightButton.contains(x, y)) { pulse(10, 60); state = State.HISTORY; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
                 if (leftButton.contains(x, y)) { copyResult(); return true; }
-                if (rightButton.contains(x, y)) { startAiOrConfigure(); return true; }
+                if (rightButton.contains(x, y)) { state = State.OFFLINE; scrollOffset = 0; haptic(HapticFeedbackConstants.CONFIRM); postInvalidateOnAnimation(); return true; }
                 if (settingsButton.contains(x, y)) { showSettingsDialog(false); return true; }
                 if (primaryButton.contains(x, y)) { pulse(15, 75); state = State.IDLE; loadedFromHistory = false; postInvalidateOnAnimation(); return true; }
             }
@@ -1368,7 +1413,10 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         private String aiPrompt() {
-            return resultText() + "\n\n请直接生成最终解读，不要复述上面的卦象数据。按“卦意 / 动爻（如有） / 变卦 / 建议”四部分输出；全文控制在300至450个中文字符，最多不超过500个中文字符。最终回答中不要包含思考过程、分析草稿、reasoning、thinking 或 <think> 标签。";
+            return resultText() + "\n\n【本机离线解卦】\n" + offlineReadingText()
+                    + "\n\n请以上述卦象事实与本机离线取用为基础生成最终解读，不要重新计算卦象，也不要复述全部原始数据。"
+                    + "按“卦意 / 动爻（如有） / 变卦 / 建议”四部分输出；全文控制在300至450个中文字符，最多不超过500个中文字符。"
+                    + "最终回答中不要包含思考过程、分析草稿、reasoning、thinking 或 <think> 标签。";
         }
 
         private void copyResult() {
@@ -1376,6 +1424,14 @@ public class MainActivity extends Activity implements SensorEventListener {
             cb.setPrimaryClip(ClipData.newPlainText("柳之卦结果", resultText()));
             haptic(HapticFeedbackConstants.CLOCK_TICK);
             Toast.makeText(getContext(), "卦象已复制", Toast.LENGTH_SHORT).show();
+        }
+
+
+        private void copyOfflineReading() {
+            ClipboardManager cb = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+            cb.setPrimaryClip(ClipData.newPlainText("柳之卦离线解读", offlineReadingText()));
+            haptic(HapticFeedbackConstants.CLOCK_TICK);
+            Toast.makeText(getContext(), "离线解读已复制", Toast.LENGTH_SHORT).show();
         }
 
         private void startAiOrConfigure() {
@@ -1506,7 +1562,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             heading.setText("柳之卦设置"); heading.setTextSize(22); heading.setTextColor(FG);
             heading.setTypeface(Typeface.DEFAULT_BOLD); root.addView(heading);
             TextView sub = new TextView(ctx);
-            sub.setText("RYU'S GUA / SETTINGS / v0.9.3"); sub.setTextSize(10); sub.setTextColor(MUTED);
+            sub.setText("RYU'S GUA / SETTINGS / v" + appVersion()); sub.setTextSize(10); sub.setTextColor(MUTED);
             root.addView(sub);
             TextView author = new TextView(ctx);
             author.setText("作者 · Ryyus"); author.setTextSize(9.5f); author.setTextColor(MUTED);
@@ -1525,7 +1581,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             TextView aiSummaryView = (TextView) ai.getChildAt(1);
             ai.setOnClickListener(v -> showAiSettingsPanel(false, () -> aiSummaryView.setText(aiSettingsSummary(AiSettingsStore.load(ctx)))));
 
-            LinearLayout update = settingsCard(ctx, "版本更新", "当前 v0.9.3 · 点击检查新版本");
+            LinearLayout update = settingsCard(ctx, "版本更新", "当前 v" + appVersion() + " · 点击检查新版本");
             root.addView(update);
             update.setOnClickListener(v -> UpdateChecker.check((Activity) ctx, true));
 
