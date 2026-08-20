@@ -1,0 +1,1 @@
+apply seven selectable boot-screen styles
