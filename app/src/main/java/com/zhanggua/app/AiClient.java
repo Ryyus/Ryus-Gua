@@ -15,18 +15,32 @@ import java.util.Collections;
 import java.util.List;
 
 final class AiClient {
+    interface StreamListener {
+        void onDelta(String delta);
+    }
+
     private AiClient() {}
 
     static String interpret(AiSettingsStore.Settings s, String prompt) throws Exception {
+        return interpretStream(s, prompt, null);
+    }
+
+    /**
+     * Streams model text as it arrives. Chat Completions is parsed from choices[].delta,
+     * while Responses API is parsed from response.output_text.delta SSE events.
+     * The complete text is also returned after the stream finishes.
+     */
+    static String interpretStream(AiSettingsStore.Settings s, String prompt, StreamListener listener) throws Exception {
         String path = AiSettingsStore.MODE_CHAT.equals(s.mode) ? "/chat/completions" : "/responses";
         URL url = new URL(apiUrl(s.endpoint, path));
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        configure(conn, s.apiKey);
+        configure(conn, s.apiKey, true);
         conn.setRequestMethod("POST");
         conn.setDoOutput(true);
 
         JSONObject body = new JSONObject();
         body.put("model", s.model);
+        body.put("stream", true);
         if (AiSettingsStore.MODE_CHAT.equals(s.mode)) {
             JSONArray messages = new JSONArray();
             messages.put(new JSONObject()
@@ -40,18 +54,78 @@ final class AiClient {
 
         writeJson(conn, body);
         int code = conn.getResponseCode();
-        String raw = readAll(code >= 200 && code < 300 ? conn.getInputStream() : conn.getErrorStream());
-        if (code < 200 || code >= 300) throw new Exception(errorMessage(code, raw));
-        return AiSettingsStore.MODE_CHAT.equals(s.mode) ? parseChat(raw) : parseResponses(raw);
+        if (code < 200 || code >= 300) {
+            String raw = readAll(conn.getErrorStream());
+            conn.disconnect();
+            throw new Exception(errorMessage(code, raw));
+        }
+
+        StringBuilder full = new StringBuilder();
+        boolean sawSse = false;
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String trimmed = line.trim();
+                if (trimmed.isEmpty() || trimmed.startsWith(":")) continue;
+                if (trimmed.startsWith("event:")) {
+                    sawSse = true;
+                    continue;
+                }
+
+                String payload = trimmed;
+                if (trimmed.startsWith("data:")) {
+                    sawSse = true;
+                    payload = trimmed.substring(5).trim();
+                }
+                if (payload.isEmpty() || "[DONE]".equals(payload)) continue;
+
+                try {
+                    JSONObject event = new JSONObject(payload);
+                    JSONObject apiError = event.optJSONObject("error");
+                    if (apiError != null) {
+                        String message = apiError.optString("message", "流式请求失败");
+                        throw new Exception(message);
+                    }
+
+                    String delta = AiSettingsStore.MODE_CHAT.equals(s.mode)
+                            ? chatDelta(event) : responsesDelta(event);
+                    if (!delta.isEmpty()) {
+                        full.append(delta);
+                        if (listener != null) listener.onDelta(delta);
+                        continue;
+                    }
+
+                    // Some compatible endpoints ignore stream=true and return one normal
+                    // JSON response. Handle that without forcing the user to change mode.
+                    if (!sawSse) {
+                        String finalText = AiSettingsStore.MODE_CHAT.equals(s.mode)
+                                ? parseChat(payload) : parseResponses(payload);
+                        if (!finalText.isEmpty()) {
+                            full.append(finalText);
+                            if (listener != null) listener.onDelta(finalText);
+                        }
+                    }
+                } catch (org.json.JSONException ignored) {
+                    // Ignore non-JSON SSE metadata. Actual API errors remain surfaced above.
+                }
+            }
+        } finally {
+            conn.disconnect();
+        }
+
+        String result = full.toString().trim();
+        if (result.isEmpty()) throw new Exception("API 返回成功，但没有可显示的文本内容");
+        return result;
     }
 
     static List<String> listModels(AiSettingsStore.Settings s) throws Exception {
         URL url = new URL(apiUrl(s.endpoint, "/models"));
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        configure(conn, s.apiKey);
+        configure(conn, s.apiKey, false);
         conn.setRequestMethod("GET");
         int code = conn.getResponseCode();
         String raw = readAll(code >= 200 && code < 300 ? conn.getInputStream() : conn.getErrorStream());
+        conn.disconnect();
         if (code < 200 || code >= 300) throw new Exception(errorMessage(code, raw));
 
         JSONArray data = new JSONObject(raw).optJSONArray("data");
@@ -64,6 +138,38 @@ final class AiClient {
         }
         Collections.sort(ids, String.CASE_INSENSITIVE_ORDER);
         return ids;
+    }
+
+    private static String chatDelta(JSONObject root) {
+        JSONArray choices = root.optJSONArray("choices");
+        if (choices == null || choices.length() == 0) return "";
+        JSONObject choice = choices.optJSONObject(0);
+        if (choice == null) return "";
+        JSONObject delta = choice.optJSONObject("delta");
+        if (delta == null) return choice.optString("text", "");
+        Object content = delta.opt("content");
+        if (content instanceof String) return (String) content;
+        if (content instanceof JSONArray) {
+            StringBuilder sb = new StringBuilder();
+            JSONArray arr = (JSONArray) content;
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject item = arr.optJSONObject(i);
+                if (item == null) continue;
+                String text = item.optString("text", "");
+                if (!text.isEmpty()) sb.append(text);
+            }
+            return sb.toString();
+        }
+        return "";
+    }
+
+    private static String responsesDelta(JSONObject event) {
+        String type = event.optString("type", "");
+        if ("response.output_text.delta".equals(type)) return event.optString("delta", "");
+        // A few OpenAI-compatible implementations emit a generic text delta while still
+        // using the Responses-shaped event envelope.
+        if (type.endsWith(".delta") && event.has("delta")) return event.optString("delta", "");
+        return "";
     }
 
     private static boolean looksLikeTextModel(String id) {
@@ -79,12 +185,13 @@ final class AiClient {
         return base + "/v1" + path;
     }
 
-    private static void configure(HttpURLConnection conn, String apiKey) {
+    private static void configure(HttpURLConnection conn, String apiKey, boolean streaming) {
         conn.setConnectTimeout(20000);
-        conn.setReadTimeout(90000);
+        conn.setReadTimeout(120000);
+        conn.setUseCaches(false);
         conn.setRequestProperty("Authorization", "Bearer " + apiKey);
         conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-        conn.setRequestProperty("Accept", "application/json");
+        conn.setRequestProperty("Accept", streaming ? "text/event-stream" : "application/json");
     }
 
     private static void writeJson(HttpURLConnection conn, JSONObject body) throws Exception {
