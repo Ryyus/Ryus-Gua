@@ -1,9 +1,9 @@
 {
-  "versionCode": 112,
-  "versionName": "1.1.2",
-  "title": "柳之卦 v1.1.2 / Ryu's Gua 1.1.2",
-  "notes": "新增 7 套可切换开屏：经典初版、电子法器、古意极简、周易原典、卜筮仪式、终端自检、六爻启动序列；在设置中选择，下次启动生效。 / Added seven selectable boot-screen styles, including the original Classic style and six new ritual/terminal/classical variants; choose in Settings and apply on next launch.",
-  "releasePage": "https://github.com/Ryyus/Ryus-Gua/releases/tag/v1.1.2",
-  "apkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.1.2/RyusGua-v1.1.2-standard.apk",
-  "legacyApkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.1.2/RyusGua-v1.1.2-legacy.apk"
+  "versionCode": 120,
+  "versionName": "1.2.0",
+  "title": "柳之卦 v1.2.0 / Ryu's Gua 1.2.0",
+  "notes": "主页主按钮改为‘一念既起 · 六爻将成’；应用图标更新为无边框现代扁平风格的柳枝 + 六爻设计，并保留淡色条纹意象。 / Updated the home casting copy and replaced the bordered launcher icon with a modern borderless willow + six-line design retaining the subtle stripe motif.",
+  "releasePage": "https://github.com/Ryyus/Ryus-Gua/releases/tag/v1.2.0",
+  "apkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.2.0/RyusGua-v1.2.0-standard.apk",
+  "legacyApkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.2.0/RyusGua-v1.2.0-legacy.apk"
 }
