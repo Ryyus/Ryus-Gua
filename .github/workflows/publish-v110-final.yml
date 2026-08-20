@@ -97,10 +97,11 @@ jobs:
             adb install -r dist/RyusGua-v1.1.0-standard.apk
             adb logcat -c
             adb shell am force-stop com.ryusgua.app || true
-            adb shell am start -W -n com.ryusgua.app/.MainActivity | tee /tmp/start.txt
-            grep -q 'Status: ok' /tmp/start.txt
-            sleep 4
-            adb shell ps | grep -q 'com.ryusgua.app'
+            adb shell am start -n com.ryusgua.app/.MainActivity
+            sleep 15
+            test -n "$(adb shell pidof com.ryusgua.app | tr -d '\r')"
+            adb shell dumpsys activity activities | tee /tmp/activities.txt
+            grep -Eq 'topResumedActivity.*com\.ryusgua\.app/.MainActivity|mResumedActivity.*com\.ryusgua\.app/.MainActivity|mFocusedApp.*com\.ryusgua\.app' /tmp/activities.txt
 
   publish:
     if: github.head_ref == 'v1.1.0-publish-final'
