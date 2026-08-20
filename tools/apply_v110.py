@@ -1,0 +1,159 @@
+from pathlib import Path
+import json
+
+
+def replace_once(text, old, new, label):
+    if old not in text:
+        raise SystemExit(f"missing expected snippet: {label}")
+    return text.replace(old, new, 1)
+
+
+p = Path('app/src/main/java/com/ryusgua/app/MainActivity.java')
+s = p.read_text(encoding='utf-8')
+
+s = replace_once(s,
+    'private enum State { BOOT, IDLE, CASTING, RESULT, DETAIL, HISTORY, AI }',
+    'private enum State { BOOT, IDLE, CASTING, RESULT, DETAIL, HISTORY, OFFLINE, AI }',
+    'state enum')
+
+s = replace_once(s,
+    'if (state == State.DETAIL) { state = State.RESULT; scrollOffset = 0; postInvalidateOnAnimation(); return true; }\n            if (state == State.HISTORY) { state = State.IDLE; scrollOffset = 0; postInvalidateOnAnimation(); return true; }\n            if (state == State.AI) { state = State.RESULT; scrollOffset = 0; postInvalidateOnAnimation(); return true; }',
+    'if (state == State.DETAIL) { state = State.RESULT; scrollOffset = 0; postInvalidateOnAnimation(); return true; }\n            if (state == State.HISTORY) { state = State.IDLE; scrollOffset = 0; postInvalidateOnAnimation(); return true; }\n            if (state == State.OFFLINE) { state = State.RESULT; scrollOffset = 0; postInvalidateOnAnimation(); return true; }\n            if (state == State.AI) { state = State.OFFLINE; scrollOffset = 0; postInvalidateOnAnimation(); return true; }',
+    'back navigation')
+
+s = replace_once(s,
+    'case HISTORY: drawHistory(c, contentW, contentH); break;\n                case AI: drawAi(c, contentW, contentH); break;',
+    'case HISTORY: drawHistory(c, contentW, contentH); break;\n                case OFFLINE: drawOffline(c, contentW, contentH); break;\n                case AI: drawAi(c, contentW, contentH); break;',
+    'draw state switch')
+
+s = replace_once(s,
+    'text(c, "掌", cx-dp(22), y, 42, FG, Paint.Align.CENTER, true);',
+    'text(c, "柳", cx-dp(22), y, 42, FG, Paint.Align.CENTER, true);',
+    'boot identity')
+s = replace_once(s,
+    'text(c, "v0.9.3 / Ryu\\\'s Gua", cx, h-dp(36), 7.5f, MUTED, Paint.Align.CENTER, false);',
+    'text(c, "v" + BuildConfig.VERSION_NAME + " / Ryu\\\'s Gua", cx, h-dp(36), 7.5f, MUTED, Paint.Align.CENTER, false);',
+    'boot version')
+s = replace_once(s,
+    'text(c, "RYU\\\'S GUA / 0.9.3", dp(20), dp(61), 9, MUTED, Paint.Align.LEFT, false);',
+    'text(c, "RYU\\\'S GUA / " + BuildConfig.VERSION_NAME, dp(20), dp(61), 9, MUTED, Paint.Align.LEFT, false);',
+    'header version')
+
+s = replace_once(s,
+    'button(c, rightButton, (!aiText.trim().isEmpty() && currentHistoryId != null && !currentHistoryId.isEmpty()) ? "AI 已存" : "解卦", GOLD, true, 11);',
+    'button(c, rightButton, "解卦", GOLD, true, 11);',
+    'result reading button')
+
+offline_methods = '''
+        private void drawOffline(Canvas c, float w, float h) {
+            backButton.set(w - dp(78), dp(86), w - dp(20), dp(116));
+            button(c, backButton, "返回", MUTED, false, 9);
+            text(c, "离线解卦", dp(20), dp(108), 15, GOLD, Paint.Align.LEFT, true);
+            text(c, "OFFLINE / LOCAL RULES", dp(20), dp(124), 7.5f, MUTED, Paint.Align.LEFT, true);
+
+            c.save();
+            c.clipRect(0, dp(136), w, h - dp(82));
+            float y = dp(160) - scrollOffset;
+            y = wrapped(c, offlineReadingText(), dp(22), y, w - dp(44), 11.2f, FG, dp(20), false) + dp(24);
+            maxScroll = Math.max(0, y + scrollOffset - (h - dp(82)) + dp(20));
+            c.restore();
+
+            auxLeftButton.set(dp(20), h - dp(69), w / 2f - dp(5), h - dp(15));
+            auxRightButton.set(w / 2f + dp(5), h - dp(69), w - dp(20), h - dp(15));
+            button(c, auxLeftButton, "复制离线解读", FG, false, 9.5f);
+            boolean hasSavedAi = aiText != null && !aiText.trim().isEmpty()
+                    && currentHistoryId != null && !currentHistoryId.isEmpty();
+            button(c, auxRightButton, hasSavedAi ? "查看 AI 解卦" : "AI 解卦", GOLD, true, 10.5f);
+        }
+
+        private String offlineReadingText() {
+            return OfflineInterpreter.interpret(lines, zhouYi);
+        }
+
+'''
+s = replace_once(s,
+    '        private void drawAi(Canvas c, float w, float h) {',
+    offline_methods + '        private void drawAi(Canvas c, float w, float h) {',
+    'offline page')
+
+s = replace_once(s,
+    'if ((state == State.DETAIL || state == State.HISTORY || state == State.AI)) {',
+    'if ((state == State.DETAIL || state == State.HISTORY || state == State.OFFLINE || state == State.AI)) {',
+    'scrollable states')
+
+s = replace_once(s,
+    'if (!dragging && backButton.contains(x, y)) {\n                        if (state == State.DETAIL || state == State.AI) state = State.RESULT;\n                        else state = State.IDLE;\n                        scrollOffset = 0; postInvalidateOnAnimation(); return true;\n                    }',
+    'if (!dragging && backButton.contains(x, y)) {\n                        if (state == State.DETAIL || state == State.OFFLINE) state = State.RESULT;\n                        else if (state == State.AI) state = State.OFFLINE;\n                        else state = State.IDLE;\n                        scrollOffset = 0; postInvalidateOnAnimation(); return true;\n                    }\n                    if (!dragging && state == State.OFFLINE && auxLeftButton.contains(x, y)) {\n                        copyOfflineReading(); return true;\n                    }\n                    if (!dragging && state == State.OFFLINE && auxRightButton.contains(x, y)) {\n                        startAiOrConfigure(); return true;\n                    }',
+    'offline touch controls')
+
+s = replace_once(s,
+    'if (rightButton.contains(x, y)) { startAiOrConfigure(); return true; }',
+    'if (rightButton.contains(x, y)) { state = State.OFFLINE; scrollOffset = 0; haptic(HapticFeedbackConstants.CONFIRM); postInvalidateOnAnimation(); return true; }',
+    'result to offline')
+
+s = replace_once(s,
+    'return resultText() + "\\n\\n请直接生成最终解读，不要复述上面的卦象数据。按“卦意 / 动爻（如有） / 变卦 / 建议”四部分输出；全文控制在300至450个中文字符，最多不超过500个中文字符。最终回答中不要包含思考过程、分析草稿、reasoning、thinking 或 <think> 标签。";',
+    'return resultText() + "\\n\\n【本机离线解卦】\\n" + offlineReadingText()\n                    + "\\n\\n请以上述卦象事实与本机离线取用为基础生成最终解读，不要重新计算卦象，也不要复述全部原始数据。"\n                    + "按“卦意 / 动爻（如有） / 变卦 / 建议”四部分输出；全文控制在300至450个中文字符，最多不超过500个中文字符。"\n                    + "最终回答中不要包含思考过程、分析草稿、reasoning、thinking 或 <think> 标签。";',
+    'ground AI in offline reading')
+
+copy_offline = '''
+        private void copyOfflineReading() {
+            ClipboardManager cb = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+            cb.setPrimaryClip(ClipData.newPlainText("柳之卦离线解读", offlineReadingText()));
+            haptic(HapticFeedbackConstants.CLOCK_TICK);
+            Toast.makeText(getContext(), "离线解读已复制", Toast.LENGTH_SHORT).show();
+        }
+
+'''
+s = replace_once(s,
+    '        private void startAiOrConfigure() {',
+    copy_offline + '        private void startAiOrConfigure() {',
+    'copy offline reading')
+
+s = replace_once(s,
+    'sub.setText("RYU\'S GUA / SETTINGS / v0.9.3");',
+    'sub.setText("RYU\'S GUA / SETTINGS / v" + BuildConfig.VERSION_NAME);',
+    'settings version')
+s = replace_once(s,
+    'LinearLayout update = settingsCard(ctx, "版本更新", "当前 v0.9.3 · 点击检查新版本");',
+    'LinearLayout update = settingsCard(ctx, "版本更新", "当前 v" + BuildConfig.VERSION_NAME + " · 点击检查新版本");',
+    'update card version')
+
+if '0.9.3' in s:
+    raise SystemExit('MainActivity still contains hard-coded 0.9.3')
+p.write_text(s, encoding='utf-8')
+
+gradle = Path('app/build.gradle')
+g = gradle.read_text(encoding='utf-8')
+g = replace_once(g, "versionCode 100\n        versionName '1.0.0'", "versionCode 110\n        versionName '1.1.0'", 'version bump')
+gradle.write_text(g, encoding='utf-8')
+
+changelog = Path('CHANGELOG.md')
+c = changelog.read_text(encoding='utf-8')
+block = '''# Changelog\n\n## 1.1.0\n- 中文：新增完全离线的规则解卦页；点击“解卦”先显示本地结果，再由用户选择是否调用 AI。\n- 中文：离线解卦按本卦/之卦、上下卦象意和 0–6 动爻取用规则生成；AI 提示词改为基于本地已计算结果，避免重复算卦。\n- 中文：修复应用内仍硬编码显示 v0.9.3 的问题；启动页、顶部栏、设置与更新卡片统一读取构建版本。\n- English: Added a fully offline deterministic reading page. The Reading action now shows local results first, with AI available as an optional second step.\n- English: Fixed stale hard-coded v0.9.3 UI labels by reading the build version dynamically.\n\n'''
+if not c.startswith('# Changelog\n\n'):
+    raise SystemExit('unexpected changelog header')
+c = block + c[len('# Changelog\n\n'):]
+changelog.write_text(c, encoding='utf-8')
+
+readme = Path('README.md')
+r = readme.read_text(encoding='utf-8')
+r = replace_once(r, '**正式版 / Stable release: 1.0.0**', '**正式版 / Stable release: 1.1.0**', 'README version')
+cn = '''### 1.1 重要变化\n\n- “解卦”现在首先打开**离线解卦**：不需要网络、账号、API Key 或云端模型。\n- 离线结果根据本卦/之卦、上下卦象意与动爻数量动态生成，并采用透明的传统常见变爻取用规则。\n- 离线结果页提供 **AI 解卦** 按钮；AI 仅作为用户主动选择的增强层，并基于本机已经计算好的卦象与取用结果继续解释。\n- 修复应用内版本号仍显示 0.9.3 的问题；所有版本展示改为自动读取构建版本。\n\n'''
+r = replace_once(r, '### 1.0 重要变化\n', cn + '### 1.0 重要变化\n', 'README CN section')
+en = '''### What's new in 1.1\n\n- **Reading** now opens a fully offline deterministic interpretation first; no network, account, API key, or cloud model is required.\n- The offline page derives its result from the base/changed hexagrams, trigram symbolism, and moving-line selection rules.\n- AI is an optional second step launched from the offline result page and is grounded in the locally computed reading.\n- Fixed stale in-app version labels by reading the build version dynamically.\n\n'''
+r = replace_once(r, "### What's new in 1.0\n", en + "### What's new in 1.0\n", 'README EN section')
+readme.write_text(r, encoding='utf-8')
+
+meta_path = Path('update/latest.json')
+meta = json.loads(meta_path.read_text(encoding='utf-8'))
+meta.update({
+    'versionCode': 110,
+    'versionName': '1.1.0',
+    'title': "柳之卦 v1.1.0 / Ryu's Gua 1.1.0",
+    'notes': '新增离线解卦：先本地规则解读，再可选 AI；修复应用内旧版本号显示。 / Offline reading first, optional AI second; fixed stale in-app version labels.',
+    'releasePage': 'https://github.com/Ryyus/Ryus-Gua/releases/tag/v1.1.0',
+    'apkUrl': 'https://github.com/Ryyus/Ryus-Gua/releases/download/v1.1.0/RyusGua-v1.1.0-standard.apk',
+    'legacyApkUrl': 'https://github.com/Ryyus/Ryus-Gua/releases/download/v1.1.0/RyusGua-v1.1.0-legacy.apk'
+})
+meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
