@@ -1,0 +1,101 @@
+name: Apply homepage formal casting
+
+on:
+  push:
+    branches: ["v1.1.0-home-formal"]
+    paths: [".home-formal-trigger"]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v1.1.0-home-formal
+          fetch-depth: 0
+      - name: Move Formal Casting to home
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('app/src/main/java/com/ryusgua/app/MainActivity.java')
+          s = p.read_text(encoding='utf-8')
+
+          def once(old, new, label):
+              global s
+              if old not in s:
+                  raise SystemExit(f'missing expected snippet: {label}')
+              s = s.replace(old, new, 1)
+
+          once('        private final RectF experienceButton = new RectF();\n',
+               '        private final RectF experienceButton = new RectF();\n        private final RectF formalButton = new RectF();\n',
+               'formal button field')
+
+          once('            primaryButton.set(dp(28), h - dp(122), w - dp(28), h - dp(64));\n            button(c, primaryButton, manualCasting ? "按下 · 掷第一爻" : "按下成卦", GOLD, true, 13);\n            text(c, shakeEnabled ? "KEY / SHAKE" : "KEY", cx, h - dp(41), 9, GOLD, Paint.Align.CENTER, true);\n            text(c, manualCasting ? "逐爻手动 · 一次一掷" : "三钱六掷 · 自动成卦", cx, h - dp(21), 8.2f, MUTED, Paint.Align.CENTER, false);',
+               '            formalButton.set(dp(28), h - dp(174), w - dp(28), h - dp(132));\n            button(c, formalButton, "正式起卦 · 等待整分", GOLD, false, 10.5f);\n            primaryButton.set(dp(28), h - dp(122), w - dp(28), h - dp(64));\n            button(c, primaryButton, manualCasting ? "按下 · 掷第一爻" : "按下成卦", GOLD, true, 13);\n            text(c, shakeEnabled ? "KEY / SHAKE" : "KEY", cx, h - dp(41), 9, GOLD, Paint.Align.CENTER, true);\n            text(c, manualCasting ? "逐爻手动 · 一次一掷" : "三钱六掷 · 自动成卦", cx, h - dp(21), 8.2f, MUTED, Paint.Align.CENTER, false);',
+               'home buttons')
+
+          once('            if (state == State.IDLE) {\n                if (primaryButton.contains(x, y)) { haptic(HapticFeedbackConstants.CONFIRM); pulse(22, 120); startCasting(); return true; }',
+               '            if (state == State.IDLE) {\n                if (formalButton.contains(x, y)) { haptic(HapticFeedbackConstants.CONFIRM); pulse(22, 120); startFormalCasting(); return true; }\n                if (primaryButton.contains(x, y)) { haptic(HapticFeedbackConstants.CONFIRM); pulse(22, 120); startCasting(); return true; }',
+               'home touch')
+
+          once('            interaction.setOnClickListener(v -> showInteractionSettingsDialog(\n                    () -> interactionSummaryView.setText(interactionSummary()),\n                    () -> { if (parentDialog[0] != null) parentDialog[0].dismiss(); }));',
+               '            interaction.setOnClickListener(v -> showInteractionSettingsDialog(\n                    () -> interactionSummaryView.setText(interactionSummary())));',
+               'settings card listener')
+
+          once('        private void showInteractionSettingsDialog() { showInteractionSettingsDialog(null, null); }\n\n        private void showInteractionSettingsDialog(Runnable onSaved) { showInteractionSettingsDialog(onSaved, null); }\n\n        private void showInteractionSettingsDialog(Runnable onSaved, Runnable onFormalStarted) {',
+               '        private void showInteractionSettingsDialog() { showInteractionSettingsDialog(null); }\n\n        private void showInteractionSettingsDialog(Runnable onSaved) {',
+               'settings overloads')
+
+          start = s.find('            TextView formalTitle = new TextView(ctx);')
+          end_token = '            AlertDialog dialog = new AlertDialog.Builder(ctx).setTitle("交互与动画").setView(box)'
+          end = s.find(end_token, start)
+          if start < 0 or end < 0:
+              raise SystemExit('formal settings block not found')
+          s = s[:start] + s[end:]
+
+          s = s.replace('                clockHandler.post(clockUpdate[0]);\n', '', 1)
+
+          start = s.find('            formalStart.setOnClickListener(v -> {')
+          end_token = '            dialog.setOnDismissListener(d -> clockHandler.removeCallbacksAndMessages(null));\n'
+          end = s.find(end_token, start)
+          if start < 0 or end < 0:
+              raise SystemExit('formal settings click block not found')
+          s = s[:start] + s[end + len(end_token):]
+
+          if 'formalStart' in s or 'formalClock' in s or 'clockHandler' in s or 'onFormalStarted' in s:
+              raise SystemExit('stale formal-settings code remains')
+          if 'formalButton' not in s or 'startFormalCasting(); return true;' not in s:
+              raise SystemExit('homepage formal casting was not installed')
+          p.write_text(s, encoding='utf-8')
+
+          c = Path('CHANGELOG.md')
+          text = c.read_text(encoding='utf-8')
+          marker = '- 中文：新增完全离线的规则解卦页；点击“解卦”先显示本地结果，再由用户选择是否调用 AI。\n'
+          if marker in text and '正式起卦入口移至主页' not in text:
+              text = text.replace(marker, marker + '- 中文：正式起卦入口移至主页，普通起卦与正式起卦分开显示；交互设置不再重复放置正式起卦按钮。\n', 1)
+          c.write_text(text, encoding='utf-8')
+
+          r = Path('README.md')
+          text = r.read_text(encoding='utf-8')
+          marker = '- “解卦”现在首先打开**离线解卦**：不需要网络、账号、API Key 或云端模型。\n'
+          if marker in text and '正式起卦入口直接放在主页' not in text:
+              text = text.replace(marker, marker + '- **正式起卦入口直接放在主页**，与普通起卦明确分开；设置页仅保留交互与动画参数。\n', 1)
+          en = '- **Reading** now opens a fully offline deterministic interpretation first; no network, account, API key, or cloud model is required.\n'
+          if en in text and 'Formal Casting now has a dedicated home-screen button' not in text:
+              text = text.replace(en, en + '- **Formal Casting now has a dedicated home-screen button**, separate from normal casting; Settings only contains interaction/animation preferences.\n', 1)
+          r.write_text(text, encoding='utf-8')
+          PY
+
+          rm -f .home-formal-trigger .github/workflows/apply-home-formal-v110.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app/src/main/java/com/ryusgua/app/MainActivity.java CHANGELOG.md README.md .home-formal-trigger .github/workflows/apply-home-formal-v110.yml
+          git commit -m "Move Formal Casting to home screen"
+          git push origin HEAD:v1.1.0-home-formal
