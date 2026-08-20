@@ -1,0 +1,177 @@
+name: Publish verified Ryu's Gua v1.2.0
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths: ["release-transfer-v120/**"]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  reconstruct:
+    if: github.head_ref == 'v1.2.0-publish'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v1.2.0-publish
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Download verified unsigned release candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: v1.2.0-unsigned-release-candidate
+          path: unsigned
+          github-token: ${{ github.token }}
+          run-id: 32396371069
+      - name: Reconstruct and verify formally signed APKs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist /tmp/v120-patches
+          base64 -d release-transfer-v120/standard.b64 > /tmp/v120-patches/standard.zst
+          base64 -d release-transfer-v120/legacy.b64 > /tmp/v120-patches/legacy.zst
+          echo 'd50c911db527417ae7661eb58f08fe647a00e6da45ffe4448a70ed2b7b1d5913  /tmp/v120-patches/standard.zst' | sha256sum -c -
+          echo '2bbc4da767174305d47c8e3c97a56ae90d10b538129269ad184ab9280ef78ad8  /tmp/v120-patches/legacy.zst' | sha256sum -c -
+          zstd -d --patch-from=unsigned/RyusGua-v1.2.0-standard-unsigned-aligned.apk /tmp/v120-patches/standard.zst -o dist/RyusGua-v1.2.0-standard.apk
+          zstd -d --patch-from=unsigned/RyusGua-v1.2.0-legacy-unsigned-aligned.apk /tmp/v120-patches/legacy.zst -o dist/RyusGua-v1.2.0-legacy.apk
+          echo '161e4dc19b5999773b991d473c8a27e6f58944d4f9b0a761dd1b9ad9a6cf12c0  dist/RyusGua-v1.2.0-standard.apk' | sha256sum -c -
+          echo '4c7cb6823413ef89102dce0777ac3f7400cdbde6febe93bea910025ec9ad909c  dist/RyusGua-v1.2.0-legacy.apk' | sha256sum -c -
+          java -jar unsigned/apksigner.jar verify --verbose --print-certs dist/RyusGua-v1.2.0-standard.apk | tee dist/signing-certificate.txt
+          java -jar unsigned/apksigner.jar verify --verbose --print-certs dist/RyusGua-v1.2.0-legacy.apk > /tmp/legacy-cert.txt
+          grep -q 'Signer #1 certificate SHA-256 digest: 14b5ac4ba6814aa62ee254b7a7f6454707350f32cc695f8f240d2f28250f8c5d' dist/signing-certificate.txt
+          grep -q 'Signer #1 certificate SHA-256 digest: 14b5ac4ba6814aa62ee254b7a7f6454707350f32cc695f8f240d2f28250f8c5d' /tmp/legacy-cert.txt
+          diff -u <(grep 'Signer #1 certificate SHA-256 digest' dist/signing-certificate.txt) <(grep 'Signer #1 certificate SHA-256 digest' /tmp/legacy-cert.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1.2.0-final-signed-apks
+          path: dist/*
+          retention-days: 30
+
+  legacy-startup:
+    if: github.head_ref == 'v1.2.0-publish'
+    needs: reconstruct
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: v1.2.0-final-signed-apks
+          path: dist
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 23
+          arch: x86_64
+          target: google_apis
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            until adb shell pm list packages >/dev/null 2>&1; do sleep 5; done
+            adb install -r dist/RyusGua-v1.2.0-legacy.apk
+            adb logcat -c
+            adb shell am force-stop com.ryusgua.app || true
+            adb shell am start -W -n com.ryusgua.app/.MainActivity | tee /tmp/start.txt
+            grep -q 'Status: ok' /tmp/start.txt
+            sleep 4
+            adb shell ps | grep -q 'com.ryusgua.app'
+
+  standard-startup:
+    if: github.head_ref == 'v1.2.0-publish'
+    needs: reconstruct
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: v1.2.0-final-signed-apks
+          path: dist
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            until adb shell pm list packages >/dev/null 2>&1; do sleep 3; done
+            adb install -r dist/RyusGua-v1.2.0-standard.apk
+            adb logcat -c
+            adb shell am force-stop com.ryusgua.app || true
+            adb shell am start -n com.ryusgua.app/.MainActivity
+            sleep 15
+            test -n "$(adb shell pidof com.ryusgua.app | tr -d '\r')"
+            adb shell dumpsys activity activities | tee /tmp/activities.txt
+            grep -Eq 'topResumedActivity.*com\.ryusgua\.app/.MainActivity|mResumedActivity.*com\.ryusgua\.app/.MainActivity|mFocusedApp.*com\.ryusgua\.app' /tmp/activities.txt
+
+  publish:
+    if: github.head_ref == 'v1.2.0-publish'
+    needs: [reconstruct, legacy-startup, standard-startup]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_SHA: d0587af162cd74d3aa01cc9b0df9bbf5dde99ca5
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: v1.2.0-final-signed-apks
+          path: dist
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          path: source
+          fetch-depth: 0
+      - name: Create source archive and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/v120-source && mkdir -p /tmp/v120-source
+          (cd source && git archive HEAD) | tar -x -C /tmp/v120-source
+          (cd /tmp/v120-source && zip -qr "$GITHUB_WORKSPACE/dist/Ryus-Gua-v1.2.0-source.zip" .)
+          unzip -t dist/Ryus-Gua-v1.2.0-source.zip >/dev/null
+          (cd dist && sha256sum RyusGua-v1.2.0-standard.apk RyusGua-v1.2.0-legacy.apk Ryus-Gua-v1.2.0-source.zip signing-certificate.txt > sha256-release.txt)
+      - name: Publish bilingual v1.2.0 release
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/release-notes.md <<'EOF'
+          ## 中文
+
+          **柳之卦 · Ryu's Gua v1.2.0**
+
+          - 主页普通起卦主按钮由「按下成卦」改为「一念既起 · 六爻将成」。
+          - 手动逐爻模式仍保留「按下 · 掷第一爻」，不改变手动起卦流程。
+          - 应用图标重绘为无边框现代扁平风格：深绿底、淡色流线、米白六爻与灰绿柳枝。
+          - 新图标延续主页淡白色条纹的视觉语言，并同步适配 Legacy 图标和 Android 8.0+ Adaptive Icon。
+          - Standard：Android 8.0+（API 26+）；Legacy：Android 6.0+（API 23+）。
+          - 包名仍为 `com.ryusgua.app`，沿用 v1 系列同一长期签名，可直接覆盖升级。
+
+          ## English
+
+          **Ryu's Gua v1.2.0**
+
+          - Changed the normal home casting CTA from “按下成卦” to “一念既起 · 六爻将成”.
+          - Manual per-line casting keeps the existing “按下 · 掷第一爻” prompt and behavior.
+          - Redesigned the launcher icon as a borderless modern flat mark with a dark green field, subtle pale stripes, ivory six-line symbol, and muted willow branch.
+          - The new icon is applied to legacy launchers and Android 8.0+ Adaptive Icons.
+          - Standard: Android 8.0+ (API 26+); Legacy: Android 6.0+ (API 23+).
+          - Package remains `com.ryusgua.app` and reuses the same long-term v1 signing certificate for in-place upgrades.
+          EOF
+          gh release delete v1.2.0 --repo Ryyus/Ryus-Gua --yes --cleanup-tag 2>/dev/null || true
+          gh release create v1.2.0 --repo Ryyus/Ryus-Gua \
+            --target "$SOURCE_SHA" \
+            --title "柳之卦 · Ryu's Gua v1.2.0" \
+            --notes-file /tmp/release-notes.md \
+            dist/RyusGua-v1.2.0-standard.apk \
+            dist/RyusGua-v1.2.0-legacy.apk \
+            dist/Ryus-Gua-v1.2.0-source.zip \
+            dist/signing-certificate.txt \
+            dist/sha256-release.txt
+      - name: Re-download public release and verify hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/v120-public && mkdir -p /tmp/v120-public
+          gh release download v1.2.0 --repo Ryyus/Ryus-Gua -D /tmp/v120-public
+          (cd /tmp/v120-public && sha256sum -c sha256-release.txt)
