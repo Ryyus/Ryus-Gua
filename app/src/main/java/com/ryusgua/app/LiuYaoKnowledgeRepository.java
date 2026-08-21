@@ -57,7 +57,7 @@ final class LiuYaoKnowledgeRepository {
         if("02".equals(id)||"09".equals(id))return b!=null&&b.yongshenQin!=null&&!b.yongshenQin.isEmpty();
         if(b==null)return false;
         if("04".equals(id)){
-            for(LiuYaoBoard.Line l:b.lines)if(l.void||l.monthBreak||l.dayBreak||l.darkMove)return true;
+            for(LiuYaoBoard.Line l:b.lines)if(l.xunVoid||l.monthBreak||l.dayBreak||l.darkMove)return true;
         }
         if("05".equals(id))for(LiuYaoBoard.Line l:b.lines)if(l.moving)return true;
         if("06".equals(id))return !b.sanhe.isEmpty()||b.liuheGua||b.liuchongGua||b.changedLiuhe||b.changedLiuchong;
