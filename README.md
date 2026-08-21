@@ -16,6 +16,14 @@
 - 应用内更新改为 **jsDelivr 国内优先 + GitHub 兜底**，版本元数据与 Standard / Legacy APK 都具备多源下载路径。
 - 版本号提升至 **1.3.0 / versionCode 130**。
 
+### 1.3.0 交互更新
+
+- 设置页统一为现代深色卡片与开关，开屏进度改为独立设置项。
+- 新安装默认开启音效反馈、动效呈现和垂直翻转；触感、摇动与手动逐爻默认关闭。
+- 正式起卦加入五分钟节制：取消不计入；五分钟内完成两次普通起卦时也会暂缓正式起卦。
+- 更新检查改为 jsDelivr 国内优先、GitHub 兜底，并提供 Standard / Legacy 对应的版本镜像。
+- 版本号提升至 **1.3.0 / versionCode 130**。
+
 ### 1.2.0 视觉更新
 
 - 主页普通起卦主按钮由 **“按下成卦”** 改为 **“一念既起 · 六爻将成”**，保留手动逐爻模式原有“按下 · 掷第一爻”提示。
@@ -98,6 +106,14 @@ gradle assembleStandardDebug assembleLegacyDebug
 - Added a five-minute Formal Casting guard: completed formal casts start a five-minute cooldown; cancelled casts do not count; two completed normal casts inside the same five-minute window also temporarily block Formal Casting.
 - Uses classical Zhou Yi copy for the guard state, including “初筮告，再三渎，渎则不告” and “往蹇来誉”.
 - Update metadata and APK delivery now use a jsDelivr-first path with GitHub fallback for better accessibility on mainland China networks.
+- Version bumped to **1.3.0 / versionCode 130**.
+
+### What's new in 1.3.0
+
+- Modernized Settings with dark cards and switch controls, including a dedicated boot-progress toggle.
+- Fresh installs enable sound, animation, and vertical flip by default.
+- Added a five-minute Formal Casting guard; cancelled casts do not count, and two completed normal casts within five minutes also pause Formal Casting.
+- Added a jsDelivr-first update path with GitHub fallback and flavor-specific Standard / Legacy mirrors.
 - Version bumped to **1.3.0 / versionCode 130**.
 
 ### What's new in 1.2.0
