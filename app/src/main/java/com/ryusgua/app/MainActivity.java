@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.SharedPreferences;
 import android.content.Intent;
 import android.graphics.Canvas;
@@ -27,6 +28,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.InputType;
 import android.view.HapticFeedbackConstants;
+import android.view.Gravity;
 import android.view.DisplayCutout;
 import android.view.MotionEvent;
 import android.view.View;
@@ -37,6 +39,7 @@ import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.Switch;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
@@ -205,13 +208,17 @@ public class MainActivity extends Activity implements SensorEventListener {
         private final AudioEngine audio;
         private final Vibrator vibrator;
         private boolean soundEnabled = true;
-        private boolean hapticEnabled = true;
-        private boolean shakeEnabled = true;
+        private boolean hapticEnabled = false;
+        private boolean shakeEnabled = false;
         private boolean manualCasting = false;
-        private boolean verticalFlipEnabled = false;
+        private boolean verticalFlipEnabled = true;
+        private boolean animationEnabled = true;
+        private boolean bootProgressEnabled = false;
         private boolean formalCastingActive = false;
         private boolean formalAwaitingManual = false;
         private long formalStartEpoch = 0L;
+        private static final String FORMAL_GUARD_PREF = "ryusgua_cast_guard";
+        private static final long FORMAL_INTERVAL_MS = 5L * 60L * 1000L;
         private final Runnable formalClockTicker = new Runnable() {
             @Override public void run() {
                 if (!formalCastingActive || state != State.CASTING) return;
@@ -230,13 +237,13 @@ public class MainActivity extends Activity implements SensorEventListener {
         private static final String BOOT_F = "sixline";
         private static final String[] BOOT_STYLES = {BOOT_CLASSIC, BOOT_A, BOOT_B, BOOT_C, BOOT_D, BOOT_E, BOOT_F};
         private static final String[] BOOT_STYLE_LABELS = {
-                "经典初版 · 柳/卦 + 进度条",
-                "A · 电子法器启动",
-                "B · 古意极简",
-                "C · 周易原典",
-                "D · 卜筮仪式",
-                "E · 终端自检",
-                "F · 六爻启动序列"
+                "经典初版",
+                "电子法器",
+                "古意极简",
+                "周易原典",
+                "卜筮仪式",
+                "终端自检",
+                "六爻序列"
         };
         private String coinAnimationMode = ANIM_CLASSIC;
         private String bootStyle = BOOT_CLASSIC;
@@ -392,10 +399,12 @@ public class MainActivity extends Activity implements SensorEventListener {
         private void loadExperienceSettings() {
             SharedPreferences pref = getContext().getSharedPreferences("ryusgua_experience", Context.MODE_PRIVATE);
             soundEnabled = pref.getBoolean("sound", true);
-            hapticEnabled = pref.getBoolean("haptic", true);
-            shakeEnabled = pref.getBoolean("shake", true);
+            hapticEnabled = pref.getBoolean("haptic", false);
+            shakeEnabled = pref.getBoolean("shake", false);
             manualCasting = pref.getBoolean("manual_cast", false);
-            verticalFlipEnabled = pref.getBoolean("vertical_flip", false);
+            verticalFlipEnabled = pref.getBoolean("vertical_flip", true);
+            animationEnabled = pref.getBoolean("animation_enabled", true);
+            bootProgressEnabled = pref.getBoolean("boot_progress", false);
             coinAnimationMode = pref.getString("coin_animation", ANIM_CLASSIC);
             if (!ANIM_PHYSICS.equals(coinAnimationMode)) coinAnimationMode = ANIM_CLASSIC;
             bootStyle = pref.getString("boot_style", BOOT_CLASSIC);
@@ -411,6 +420,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                     .putBoolean("shake", shakeEnabled)
                     .putBoolean("manual_cast", manualCasting)
                     .putBoolean("vertical_flip", verticalFlipEnabled)
+                    .putBoolean("animation_enabled", animationEnabled)
+                    .putBoolean("boot_progress", bootProgressEnabled)
                     .putString("coin_animation", coinAnimationMode)
                     .putString("boot_style", bootStyle)
                     .apply();
@@ -584,11 +595,15 @@ public class MainActivity extends Activity implements SensorEventListener {
                 text(c, "电子蓍筮终端", cx, y+dp(52), 9.5f, FG, Paint.Align.CENTER, false);
             }
             float barL=dp(30), barR=w-dp(30), barY=h*.70f;
-            paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(dp(1)); paint.setColor(GRID);
-            c.drawRect(barL, barY, barR, barY+dp(8), paint);
-            paint.setStyle(Paint.Style.FILL); paint.setColor(GOLD);
-            c.drawRect(barL+dp(2), barY+dp(2), barL+dp(2)+(barR-barL-dp(4))*bootSweep, barY+dp(6), paint);
-            text(c, bootStep < 6 ? "INITIALIZING..." : "READY", cx, barY+dp(28), 8, bootStep<6?MUTED:GOLD, Paint.Align.CENTER, true);
+            if (bootProgressEnabled) {
+                paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(dp(1)); paint.setColor(GRID);
+                c.drawRect(barL, barY, barR, barY+dp(8), paint);
+                paint.setStyle(Paint.Style.FILL); paint.setColor(GOLD);
+                c.drawRect(barL+dp(2), barY+dp(2), barL+dp(2)+(barR-barL-dp(4))*bootSweep, barY+dp(6), paint);
+                text(c, bootStep < 6 ? "INITIALIZING..." : "READY", cx, barY+dp(28), 8, bootStep<6?MUTED:GOLD, Paint.Align.CENTER, true);
+            } else if (bootStep >= 6) {
+                text(c, "六爻已备", cx, barY+dp(17), 10, GOLD, Paint.Align.CENTER, true);
+            }
             text(c, "v" + appVersion() + " / Ryu's Gua", cx, h-dp(36), 7.5f, MUTED, Paint.Align.CENTER, false);
         }
 
@@ -716,8 +731,11 @@ public class MainActivity extends Activity implements SensorEventListener {
             c.drawRect(seal, paint);
             text(c, "卦", cx, h * 0.47f + dp(19), 48, RED, Paint.Align.CENTER, true);
 
+            String formalReason = formalBlockReason();
+            boolean formalAvailable = formalReason.isEmpty();
+            text(c, formalAvailable ? "静候整分依时成爻" : "五分之内暂缓再筮", cx, h - dp(184), 8.0f, formalAvailable ? MUTED : RED, Paint.Align.CENTER, false);
             formalButton.set(dp(28), h - dp(174), w - dp(28), h - dp(132));
-            button(c, formalButton, "正式起卦 · 等待整分", GOLD, false, 10.5f);
+            button(c, formalButton, formalAvailable ? "正式起卦" : "往蹇来誉", formalAvailable ? GOLD : MUTED, false, 10.5f);
             primaryButton.set(dp(28), h - dp(122), w - dp(28), h - dp(64));
             button(c, primaryButton, manualCasting ? "按下 · 掷第一爻" : "一念既起 · 六爻将成", GOLD, true, 13);
             text(c, shakeEnabled ? "KEY / SHAKE" : "KEY", cx, h - dp(41), 9, GOLD, Paint.Align.CENTER, true);
@@ -749,7 +767,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             drawStack(c, frame.centerX(), frame.bottom - dp(24), lines, castCount, false, dp(78), dp(32));
 
             if (!toastLine.isEmpty()) text(c, toastLine, cx, h - dp(94), 10.5f, RED, Paint.Align.CENTER, true);
-            if (manualCasting || ANIM_PHYSICS.equals(coinAnimationMode)) {
+            if (manualCasting || (animationEnabled && ANIM_PHYSICS.equals(coinAnimationMode))) {
                 primaryButton.set(dp(28), h - dp(72), w - dp(28), h - dp(20));
                 String label;
                 if (castCount >= 6) label = "成卦中…";
@@ -1263,7 +1281,11 @@ public class MainActivity extends Activity implements SensorEventListener {
 
             if (e.getAction() != MotionEvent.ACTION_UP) return true;
             if (state == State.IDLE) {
-                if (formalButton.contains(x, y)) { haptic(HapticFeedbackConstants.CONFIRM); pulse(22, 120); startFormalCasting(); return true; }
+                if (formalButton.contains(x, y)) {
+                    haptic(HapticFeedbackConstants.CONFIRM); pulse(22, 120);
+                    if (ensureFormalAllowed()) startFormalCasting();
+                    return true;
+                }
                 if (primaryButton.contains(x, y)) { haptic(HapticFeedbackConstants.CONFIRM); pulse(22, 120); startCasting(); return true; }
                 if (experienceButton.contains(x, y)) { showSettingsDialog(false); return true; }
                 if (historyButton.contains(x, y)) { state = State.HISTORY; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
@@ -1316,7 +1338,70 @@ public class MainActivity extends Activity implements SensorEventListener {
             castNext();
         }
 
+        private SharedPreferences castGuardPrefs() {
+            return getContext().getSharedPreferences(FORMAL_GUARD_PREF, Context.MODE_PRIVATE);
+        }
+
+        private String formalBlockReason() {
+            SharedPreferences pref = castGuardPrefs();
+            long now = System.currentTimeMillis();
+            long lastFormal = pref.getLong("last_formal_complete", 0L);
+            if (lastFormal > 0L && now - lastFormal < FORMAL_INTERVAL_MS) return "正式起卦需隔五分";
+            long latest = pref.getLong("normal_latest", 0L);
+            long previous = pref.getLong("normal_previous", 0L);
+            if (latest > 0L && previous > 0L
+                    && now - latest < FORMAL_INTERVAL_MS
+                    && now - previous < FORMAL_INTERVAL_MS) return "普通起卦已有两次";
+            return "";
+        }
+
+        private long formalBlockRemainingMs() {
+            SharedPreferences pref = castGuardPrefs();
+            long now = System.currentTimeMillis();
+            long lastFormal = pref.getLong("last_formal_complete", 0L);
+            if (lastFormal > 0L && now - lastFormal < FORMAL_INTERVAL_MS)
+                return FORMAL_INTERVAL_MS - (now - lastFormal);
+            long latest = pref.getLong("normal_latest", 0L);
+            long previous = pref.getLong("normal_previous", 0L);
+            if (latest > 0L && previous > 0L
+                    && now - latest < FORMAL_INTERVAL_MS
+                    && now - previous < FORMAL_INTERVAL_MS)
+                return FORMAL_INTERVAL_MS - (now - previous);
+            return 0L;
+        }
+
+        private boolean ensureFormalAllowed() {
+            String reason = formalBlockReason();
+            if (reason.isEmpty()) return true;
+            long remaining = Math.max(0L, formalBlockRemainingMs());
+            long seconds = (remaining + 999L) / 1000L;
+            String clock = String.format(Locale.CHINA, "%d:%02d", seconds / 60L, seconds % 60L);
+            AlertDialog dialog = new AlertDialog.Builder(getContext())
+                    .setTitle("暂缓起卦")
+                    .setMessage("《蒙》：初筮告，再三渎，渎则不告。\n\n" + reason + "。\n尚需等待 " + clock + "。")
+                    .setPositiveButton("知悉", null)
+                    .create();
+            dialog.setOnShowListener(d -> styleSettingsDialog(dialog));
+            dialog.show();
+            return false;
+        }
+
+        private void recordCompletedCast(boolean formal) {
+            SharedPreferences pref = castGuardPrefs();
+            long now = System.currentTimeMillis();
+            SharedPreferences.Editor editor = pref.edit();
+            if (formal) {
+                editor.putLong("last_formal_complete", now);
+            } else {
+                long latest = pref.getLong("normal_latest", 0L);
+                editor.putLong("normal_previous", latest);
+                editor.putLong("normal_latest", now);
+            }
+            editor.apply();
+        }
+
         private void startFormalCasting() {
+            if (!formalBlockReason().isEmpty()) { ensureFormalAllowed(); return; }
             handler.removeCallbacksAndMessages(null);
             Arrays.fill(lines, 0);
             castCount = 0;
@@ -1393,6 +1478,10 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (state != State.CASTING || lineAnimating) return;
             if (castCount >= 6) {
                 finishCasting();
+                return;
+            }
+            if (!animationEnabled) {
+                settleLine(HexagramEngine.castLine());
                 return;
             }
             if (ANIM_PHYSICS.equals(coinAnimationMode)) castNextPhysics();
@@ -1549,6 +1638,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             state = State.RESULT;
             HistoryStore.Entry savedEntry = HistoryStore.add(getContext(), lines, wasFormal);
             currentHistoryId = savedEntry.id;
+            recordCompletedCast(wasFormal);
             if (soundEnabled) audio.complete();
             ritualPulse();
             haptic(HapticFeedbackConstants.CONFIRM);
@@ -1739,28 +1829,28 @@ public class MainActivity extends Activity implements SensorEventListener {
             root.setBackgroundColor(BG);
 
             TextView heading = new TextView(ctx);
-            heading.setText("柳之卦设置"); heading.setTextSize(22); heading.setTextColor(FG);
+            heading.setText("设置中心"); heading.setTextSize(22); heading.setTextColor(FG);
             heading.setTypeface(Typeface.DEFAULT_BOLD); root.addView(heading);
             TextView sub = new TextView(ctx);
-            sub.setText("RYU'S GUA / SETTINGS / v" + appVersion()); sub.setTextSize(10); sub.setTextColor(MUTED);
+            sub.setText("本机设置统一管理"); sub.setTextSize(10); sub.setTextColor(MUTED);
             root.addView(sub);
             TextView author = new TextView(ctx);
-            author.setText("作者 · Ryyus"); author.setTextSize(9.5f); author.setTextColor(MUTED);
+            author.setText("Ryu's Gua · v" + appVersion() + " · Ryyus"); author.setTextSize(9.5f); author.setTextColor(MUTED);
             author.setPadding(0, (int)(2*density), 0, (int)(12*density)); root.addView(author);
 
             final AlertDialog[] parentDialog = {null};
-            LinearLayout interaction = settingsCard(ctx, "交互与动画", interactionSummary());
+            LinearLayout interaction = settingsCard(ctx, "交互设置", interactionSummary());
             root.addView(interaction);
             TextView interactionSummaryView = (TextView) interaction.getChildAt(1);
             interaction.setOnClickListener(v -> showInteractionSettingsDialog(
                     () -> interactionSummaryView.setText(interactionSummary())));
 
-            LinearLayout ai = settingsCard(ctx, "AI 解卦", aiSettingsSummary(AiSettingsStore.load(ctx)));
+            LinearLayout ai = settingsCard(ctx, "智能解卦", aiSettingsSummary(AiSettingsStore.load(ctx)));
             root.addView(ai);
             TextView aiSummaryView = (TextView) ai.getChildAt(1);
             ai.setOnClickListener(v -> showAiSettingsPanel(false, () -> aiSummaryView.setText(aiSettingsSummary(AiSettingsStore.load(ctx)))));
 
-            LinearLayout update = settingsCard(ctx, "版本更新", "当前 v" + appVersion() + " · 点击检查新版本");
+            LinearLayout update = settingsCard(ctx, "版本更新", "国内优先多源检查");
             root.addView(update);
             update.setOnClickListener(v -> UpdateChecker.check((Activity) ctx, true));
 
@@ -1779,38 +1869,87 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         private String interactionSummary() {
-            String base = bootStyleShortLabel() + " · "
-                    + (ANIM_PHYSICS.equals(coinAnimationMode) ? "物理飞出" : "经典浮动")
-                    + " · " + (manualCasting ? "逐爻" : "自动")
-                    + " · " + (shakeEnabled ? "可摇动" : "仅点击");
-            return verticalFlipEnabled ? base + " · 垂直翻转" : base;
+            return "交互选项统一管理";
         }
 
         private String aiSettingsSummary(AiSettingsStore.Settings saved) {
-            return providerLabel(saved.provider) + " · " + (saved.isConfigured() ? saved.model : "未配置 API Key");
+            return saved.isConfigured() ? "模型接口已经配置" : "模型接口尚未配置";
         }
 
         private LinearLayout settingsCard(Context ctx, String titleText, String summaryText) {
             float density = getResources().getDisplayMetrics().density;
             LinearLayout card = new LinearLayout(ctx);
             card.setOrientation(LinearLayout.VERTICAL);
-            card.setPadding((int)(14*density), (int)(12*density), (int)(14*density), (int)(12*density));
+            card.setPadding((int)(16*density), (int)(14*density), (int)(16*density), (int)(14*density));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            lp.setMargins(0, 0, 0, (int)(9*density));
+            lp.setMargins(0, 0, 0, (int)(10*density));
             card.setLayoutParams(lp);
             GradientDrawable bg = new GradientDrawable();
-            bg.setColor(PANEL); bg.setCornerRadius(12*density); bg.setStroke(Math.max(1, (int)density), GRID);
+            bg.setColor(PANEL); bg.setCornerRadius(16*density); bg.setStroke(Math.max(1, (int)density), GRID);
             card.setBackground(bg);
             card.setClickable(true); card.setFocusable(true);
 
             TextView title = new TextView(ctx);
-            title.setText(titleText + "   ›"); title.setTextSize(15); title.setTextColor(FG);
+            title.setText(titleText); title.setTextSize(15); title.setTextColor(FG);
             title.setTypeface(Typeface.DEFAULT_BOLD); card.addView(title);
             TextView summary = new TextView(ctx);
             summary.setText(summaryText); summary.setTextSize(11.5f); summary.setTextColor(MUTED);
-            summary.setPadding(0, (int)(4*density), 0, 0); card.addView(summary);
+            summary.setPadding(0, (int)(5*density), 0, 0); card.addView(summary);
             return card;
+        }
+
+        private void addSettingsSection(Context ctx, LinearLayout box, String titleText, String descText) {
+            float density = getResources().getDisplayMetrics().density;
+            TextView title = new TextView(ctx);
+            title.setText(titleText); title.setTextSize(14); title.setTextColor(GOLD); title.setTypeface(Typeface.DEFAULT_BOLD);
+            title.setPadding(0, (int)(10*density), 0, 0); box.addView(title);
+            TextView desc = new TextView(ctx);
+            desc.setText(descText); desc.setTextSize(10.5f); desc.setTextColor(MUTED);
+            desc.setPadding(0, (int)(2*density), 0, (int)(5*density)); box.addView(desc);
+        }
+
+        private Switch addModernSwitch(Context ctx, LinearLayout box, String titleText, String descText, boolean checked) {
+            float density = getResources().getDisplayMetrics().density;
+            LinearLayout card = new LinearLayout(ctx);
+            card.setOrientation(LinearLayout.HORIZONTAL);
+            card.setGravity(Gravity.CENTER_VERTICAL);
+            card.setPadding((int)(14*density), (int)(10*density), (int)(10*density), (int)(10*density));
+            LinearLayout.LayoutParams outer = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            outer.setMargins(0, 0, 0, (int)(7*density)); card.setLayoutParams(outer);
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(PANEL); bg.setCornerRadius(14*density); bg.setStroke(Math.max(1, (int)density), GRID); card.setBackground(bg);
+
+            LinearLayout labels = new LinearLayout(ctx); labels.setOrientation(LinearLayout.VERTICAL);
+            TextView title = new TextView(ctx); title.setText(titleText); title.setTextColor(FG); title.setTextSize(13.5f); title.setTypeface(Typeface.DEFAULT_BOLD); labels.addView(title);
+            TextView desc = new TextView(ctx); desc.setText(descText); desc.setTextColor(MUTED); desc.setTextSize(10.5f); desc.setPadding(0, (int)(3*density), 0, 0); labels.addView(desc);
+            card.addView(labels, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+            Switch sw = new Switch(ctx);
+            sw.setChecked(checked); sw.setShowText(false);
+            int[][] states = new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}};
+            sw.setThumbTintList(new ColorStateList(states, new int[]{GOLD, FG}));
+            sw.setTrackTintList(new ColorStateList(states, new int[]{Color.argb(145, 201, 168, 91), Color.argb(100, 80, 88, 78)}));
+            card.addView(sw, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+            card.setOnClickListener(v -> sw.setChecked(!sw.isChecked()));
+            box.addView(card);
+            return sw;
+        }
+
+        private void styleSettingsDialog(AlertDialog dialog) {
+            if (dialog == null) return;
+            try {
+                Window window = dialog.getWindow();
+                if (window != null) {
+                    GradientDrawable bg = new GradientDrawable();
+                    bg.setColor(BG); bg.setCornerRadius(dp(18)); bg.setStroke(Math.max(1, (int)dp(1)), GRID);
+                    window.setBackgroundDrawable(bg);
+                }
+                if (dialog.getButton(AlertDialog.BUTTON_POSITIVE) != null) dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(GOLD);
+                if (dialog.getButton(AlertDialog.BUTTON_NEGATIVE) != null) dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(MUTED);
+                if (dialog.getButton(AlertDialog.BUTTON_NEUTRAL) != null) dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(MUTED);
+            } catch (Throwable ignored) {}
         }
 
         private void showInteractionSettingsDialog() { showInteractionSettingsDialog(null); }
@@ -1818,41 +1957,45 @@ public class MainActivity extends Activity implements SensorEventListener {
         private void showInteractionSettingsDialog(Runnable onSaved) {
             Context ctx = getContext();
             float density = getResources().getDisplayMetrics().density;
+            ScrollView scroll = new ScrollView(ctx);
             LinearLayout box = new LinearLayout(ctx);
             box.setOrientation(LinearLayout.VERTICAL);
-            box.setPadding((int)(16*density), (int)(8*density), (int)(16*density), (int)(8*density));
+            box.setPadding((int)(16*density), (int)(8*density), (int)(16*density), (int)(14*density));
+            box.setBackgroundColor(BG); scroll.addView(box);
 
-            TextView bootTitle = new TextView(ctx); bootTitle.setText("开屏样式"); bootTitle.setTextSize(14); bootTitle.setTextColor(GOLD); box.addView(bootTitle);
-            TextView bootHint = new TextView(ctx); bootHint.setText("共 7 套 · 切换后下次启动生效"); bootHint.setTextSize(10); bootHint.setTextColor(MUTED); box.addView(bootHint);
+            addSettingsSection(ctx, box, "开屏样式", "下次启动应用生效");
             Spinner bootSpinner = new Spinner(ctx);
             ArrayAdapter<String> bootAdapter = new ArrayAdapter<>(ctx, android.R.layout.simple_spinner_item, BOOT_STYLE_LABELS);
             bootAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            bootSpinner.setAdapter(bootAdapter);
-            bootSpinner.setSelection(bootStyleIndex());
-            box.addView(bootSpinner);
+            bootSpinner.setAdapter(bootAdapter); bootSpinner.setSelection(bootStyleIndex());
+            bootSpinner.setBackgroundTintList(ColorStateList.valueOf(GOLD)); box.addView(bootSpinner);
+            Switch bootProgress = addModernSwitch(ctx, box, "开屏进度", "显示开屏加载进度", bootProgressEnabled);
 
-            TextView modeTitle = new TextView(ctx); modeTitle.setText("投币动画"); modeTitle.setTextSize(14); modeTitle.setTextColor(GOLD); modeTitle.setPadding(0, (int)(12*density), 0, 0); box.addView(modeTitle);
-            RadioGroup animation = new RadioGroup(ctx); animation.setOrientation(RadioGroup.VERTICAL);
-            RadioButton classic = new RadioButton(ctx); classic.setText("经典浮动 · 稳定清晰"); classic.setId(View.generateViewId());
-            RadioButton physics = new RadioButton(ctx); physics.setText("物理飞出 · 从按钮抛出三枚铜钱"); physics.setId(View.generateViewId());
-            animation.addView(classic); animation.addView(physics);
-            animation.check(ANIM_PHYSICS.equals(coinAnimationMode) ? physics.getId() : classic.getId()); box.addView(animation);
+            addSettingsSection(ctx, box, "动画样式", "选择铜钱呈现方式");
+            Spinner animationSpinner = new Spinner(ctx);
+            animationSpinner.setAdapter(new ArrayAdapter<>(ctx, android.R.layout.simple_spinner_dropdown_item, new String[]{"经典浮动", "物理飞出"}));
+            animationSpinner.setSelection(ANIM_PHYSICS.equals(coinAnimationMode) ? 1 : 0);
+            animationSpinner.setBackgroundTintList(ColorStateList.valueOf(GOLD)); box.addView(animationSpinner);
 
-            CheckBox sound = new CheckBox(ctx); sound.setText("音效"); sound.setChecked(soundEnabled); box.addView(sound);
-            CheckBox haptic = new CheckBox(ctx); haptic.setText("震动 / 触感反馈"); haptic.setChecked(hapticEnabled); box.addView(haptic);
-            CheckBox shake = new CheckBox(ctx); shake.setText("摇动起卦 / 继续投掷"); shake.setChecked(shakeEnabled); box.addView(shake);
-            CheckBox manual = new CheckBox(ctx); manual.setText("逐爻手动投掷"); manual.setChecked(manualCasting); box.addView(manual);
-            CheckBox verticalFlip = new CheckBox(ctx); verticalFlip.setText("垂直翻转 · 铜钱沿水平轴翻面"); verticalFlip.setChecked(verticalFlipEnabled); box.addView(verticalFlip);
+            Switch animation = addModernSwitch(ctx, box, "动效呈现", "保留铜钱起落动画", animationEnabled);
+            Switch sound = addModernSwitch(ctx, box, "音效反馈", "投掷落币保留音效", soundEnabled);
+            Switch verticalFlip = addModernSwitch(ctx, box, "垂直翻转", "铜钱沿横轴线翻转", verticalFlipEnabled);
+            Switch haptic = addModernSwitch(ctx, box, "触感反馈", "按键起卦触感反馈", hapticEnabled);
+            Switch shake = addModernSwitch(ctx, box, "摇动起卦", "摇动设备触发起卦", shakeEnabled);
+            Switch manual = addModernSwitch(ctx, box, "手动逐爻", "每次操作仅掷一爻", manualCasting);
 
-            AlertDialog dialog = new AlertDialog.Builder(ctx).setTitle("交互与动画").setView(box)
+            AlertDialog dialog = new AlertDialog.Builder(ctx).setTitle("交互设置").setView(scroll)
                     .setPositiveButton("保存", null).setNegativeButton("取消", null).create();
             dialog.setOnShowListener(d -> {
+                styleSettingsDialog(dialog);
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
                     int bootIndex = Math.max(0, Math.min(BOOT_STYLES.length - 1, bootSpinner.getSelectedItemPosition()));
                     bootStyle = BOOT_STYLES[bootIndex];
+                    bootProgressEnabled = bootProgress.isChecked();
+                    animationEnabled = animation.isChecked();
                     soundEnabled = sound.isChecked(); hapticEnabled = haptic.isChecked(); shakeEnabled = shake.isChecked(); manualCasting = manual.isChecked();
                     verticalFlipEnabled = verticalFlip.isChecked();
-                    coinAnimationMode = animation.getCheckedRadioButtonId() == physics.getId() ? ANIM_PHYSICS : ANIM_CLASSIC;
+                    coinAnimationMode = animationSpinner.getSelectedItemPosition() == 1 ? ANIM_PHYSICS : ANIM_CLASSIC;
                     saveExperienceSettings();
                     if (onSaved != null) onSaved.run();
                     dialog.dismiss(); postInvalidateOnAnimation();
@@ -1870,7 +2013,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             final float density = getResources().getDisplayMetrics().density;
             ScrollView scroll = new ScrollView(ctx);
             LinearLayout box = new LinearLayout(ctx); box.setOrientation(LinearLayout.VERTICAL);
-            box.setPadding((int)(16*density), (int)(6*density), (int)(16*density), (int)(10*density)); scroll.addView(box);
+            box.setPadding((int)(16*density), (int)(6*density), (int)(16*density), (int)(10*density)); box.setBackgroundColor(BG); scroll.addView(box);
 
             TextView warning = new TextView(ctx);
             warning.setText("每个服务商现在独立保存 API Key、接口、模型与协议。切换服务商会读取该服务商自己的配置；API Key 仍使用 Android Keystore 加密。");
@@ -1919,11 +2062,11 @@ public class MainActivity extends Activity implements SensorEventListener {
             });
 
             LinearLayout row = new LinearLayout(ctx); row.setOrientation(LinearLayout.HORIZONTAL);
-            Button models = new Button(ctx); models.setText("读取模型"); Button clear = new Button(ctx); clear.setText("清除当前 Key");
+            Button models = new Button(ctx); models.setText("读取模型"); Button clear = new Button(ctx); clear.setText("清除密钥");
             row.addView(models, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
             row.addView(clear, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1)); box.addView(row);
 
-            AlertDialog dialog = new AlertDialog.Builder(ctx).setTitle("AI 解卦设置").setView(scroll)
+            AlertDialog dialog = new AlertDialog.Builder(ctx).setTitle("智能解卦").setView(scroll)
                     .setPositiveButton(startAiAfterSave ? "保存并解卦" : "保存", null).setNegativeButton("取消", null).create();
 
             models.setOnClickListener(v -> {

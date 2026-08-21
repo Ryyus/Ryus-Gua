@@ -19,9 +19,12 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
-/** Lightweight update checker for the public Ryu's Gua release channel. */
+/** Multi-source update checker: jsDelivr first, GitHub fallback. */
 final class UpdateChecker {
-    private static final String META_URL = "https://raw.githubusercontent.com/Ryyus/Ryus-Gua/main/update/latest.json";
+    private static final String[] META_URLS = {
+            "https://cdn.jsdelivr.net/gh/Ryyus/Ryus-Gua@main/update/latest.json",
+            "https://raw.githubusercontent.com/Ryyus/Ryus-Gua/main/update/latest.json"
+    };
     private static final String PREF = "ryusgua_updates";
     private static final long AUTO_INTERVAL_MS = 12L * 60L * 60L * 1000L;
 
@@ -33,26 +36,20 @@ final class UpdateChecker {
         long now = System.currentTimeMillis();
         if (!manual && now - p.getLong("last_check", 0L) < AUTO_INTERVAL_MS) return;
         p.edit().putLong("last_check", now).apply();
-        if (manual) Toast.makeText(activity, "正在检查更新…", Toast.LENGTH_SHORT).show();
+        if (manual) Toast.makeText(activity, "正在检查版本更新", Toast.LENGTH_SHORT).show();
 
         new Thread(() -> {
-            HttpURLConnection conn = null;
             try {
-                conn = (HttpURLConnection) new URL(META_URL).openConnection();
-                conn.setConnectTimeout(7000);
-                conn.setReadTimeout(7000);
-                conn.setUseCaches(false);
-                conn.setRequestProperty("Accept", "application/json");
-                conn.setRequestProperty("User-Agent", "Ryus-Gua-Android");
-                int code = conn.getResponseCode();
-                if (code < 200 || code >= 300) throw new IllegalStateException("HTTP " + code);
-                String body = readAll(conn.getInputStream());
-                JSONObject json = new JSONObject(body);
+                JSONObject json = fetchMetadata();
                 int remoteCode = json.optInt("versionCode", 0);
                 String remoteName = json.optString("versionName", "");
-                String title = json.optString("title", "发现新版本");
+                String title = json.optString("title", "发现版本更新");
                 String notes = json.optString("notes", "");
-                String releasePage = json.optString("releasePage", "https://github.com/Ryyus/Ryyus.github.io/releases");
+                String releasePage = json.optString("releasePage", "https://github.com/Ryyus/Ryus-Gua/releases");
+                boolean legacy = "legacy".equalsIgnoreCase(BuildConfig.FLAVOR);
+                String mirror = json.optString(legacy ? "legacyMirrorApkUrl" : "mirrorApkUrl", "");
+                String direct = json.optString(legacy ? "legacyApkUrl" : "apkUrl", "");
+                String downloadUrl = firstReachable(mirror, direct, releasePage);
                 int localCode = currentVersionCode(activity);
 
                 activity.runOnUiThread(() -> {
@@ -62,21 +59,72 @@ final class UpdateChecker {
                         new AlertDialog.Builder(activity)
                                 .setTitle(title)
                                 .setMessage(message.trim())
-                                .setPositiveButton("前往更新", (d, w) -> open(activity, releasePage))
-                                .setNegativeButton("稍后", null)
+                                .setPositiveButton("立即更新", (d, w) -> open(activity, downloadUrl))
+                                .setNeutralButton("发布页面", (d, w) -> open(activity, releasePage))
+                                .setNegativeButton("稍后再说", null)
                                 .show();
                     } else if (manual) {
-                        Toast.makeText(activity, "当前已是最新版本", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(activity, "当前已经是最新版", Toast.LENGTH_SHORT).show();
                     }
                 });
             } catch (Exception ex) {
                 if (manual) activity.runOnUiThread(() -> {
-                    if (!activity.isFinishing()) Toast.makeText(activity, "检查更新失败，请稍后重试", Toast.LENGTH_SHORT).show();
+                    if (!activity.isFinishing()) Toast.makeText(activity, "检查更新暂不可用", Toast.LENGTH_SHORT).show();
                 });
+            }
+        }, "ryus-gua-update-check").start();
+    }
+
+    private static JSONObject fetchMetadata() throws Exception {
+        Exception last = null;
+        for (String url : META_URLS) {
+            HttpURLConnection conn = null;
+            try {
+                conn = openConnection(url, 4500, 5500);
+                int code = conn.getResponseCode();
+                if (code < 200 || code >= 300) throw new IllegalStateException("HTTP " + code);
+                return new JSONObject(readAll(conn.getInputStream()));
+            } catch (Exception ex) {
+                last = ex;
             } finally {
                 if (conn != null) conn.disconnect();
             }
-        }, "ryus-gua-update-check").start();
+        }
+        throw last == null ? new IllegalStateException("No update source") : last;
+    }
+
+    private static String firstReachable(String... urls) {
+        for (String url : urls) {
+            if (url == null || url.trim().isEmpty()) continue;
+            if (isReachable(url.trim())) return url.trim();
+        }
+        for (String url : urls) if (url != null && !url.trim().isEmpty()) return url.trim();
+        return "https://github.com/Ryyus/Ryus-Gua/releases";
+    }
+
+    private static boolean isReachable(String url) {
+        HttpURLConnection conn = null;
+        try {
+            conn = openConnection(url, 3500, 3500);
+            conn.setRequestProperty("Range", "bytes=0-0");
+            int code = conn.getResponseCode();
+            return (code >= 200 && code < 400) || code == 416;
+        } catch (Exception ignored) {
+            return false;
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    private static HttpURLConnection openConnection(String url, int connectMs, int readMs) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+        conn.setConnectTimeout(connectMs);
+        conn.setReadTimeout(readMs);
+        conn.setUseCaches(false);
+        conn.setInstanceFollowRedirects(true);
+        conn.setRequestProperty("Accept", "application/json, application/octet-stream, */*");
+        conn.setRequestProperty("User-Agent", "Ryus-Gua-Android/1.3");
+        return conn;
     }
 
     private static int currentVersionCode(Context context) throws Exception {
