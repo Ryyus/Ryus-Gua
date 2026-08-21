@@ -1,0 +1,38 @@
+name: v1.3.0 README dedupe
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/v130-readme-dedupe.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ github.token }}
+      - name: Remove duplicate v1.3.0 README section
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('README.md')
+          s=p.read_text(encoding='utf-8')
+          start=s.find('### 1.3.0 交互更新\n')
+          end=s.find('### 1.2.0 视觉更新\n', start) if start >= 0 else -1
+          if start >= 0 and end > start:
+              s=s[:start]+s[end:]
+          p.write_text(s, encoding='utf-8')
+          PY
+          rm -f .github/workflows/v130-readme-dedupe.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md .github/workflows/v130-readme-dedupe.yml
+          git commit -m "Deduplicate v1.3.0 README notes"
+          git push origin HEAD:main
