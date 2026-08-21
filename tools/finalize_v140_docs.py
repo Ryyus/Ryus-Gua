@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# Final public documentation pass for v1.4.0.
 readme = Path('README.md')
 s = readme.read_text(encoding='utf-8')
 s = s.replace('> **正式版 / Stable release: 1.3.0**', '> **正式版 / Stable release: 1.4.0**', 1)
@@ -8,7 +9,6 @@ section = '''### 1.4.0 本地六爻排盘\n\n- 新增完全离线的 **六爻纳
 if anchor not in s:
     raise SystemExit('README anchor missing')
 s = s.replace(anchor, section + anchor, 1)
-# English top section if present.
 eng_anchor = "### What's new in 1.3.0\n"
 eng = '''### What's new in 1.4.0\n\n- Added a fully local Java-native Liuyao Najia board: Eight Palaces, Shi/Ying, Najia stems/branches, Six Relations, Six Spirits, month/day influence, Xunkong, strength, breaks/dark movement, moving-line transformations, tombs, combinations/clashes, palace transformation, Fanyin and Fuyin.\n- Added a dedicated **Board** page with optional Yongshen selection and full-board copy.\n- Added an **11-topic offline Liuyao rule index**; the existing local Zhouyi text remains the canonical hexagram/line text source.\n- Offline readings now include the computed board facts, while optional AI readings receive only the relevant local rule digest plus the board.\n- Liuyao rules/static tables were reimplemented from the MIT-licensed `Johnson-Jia/liuyao-divination`; attribution is preserved in `THIRD_PARTY_NOTICES.md`.\n- Version bumped to **1.4.0 / versionCode 140**.\n\n'''
 if eng_anchor in s:
