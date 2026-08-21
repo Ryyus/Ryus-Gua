@@ -1,0 +1,58 @@
+name: Cleanup completed branches
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/cleanup-completed-branches.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Delete completed and temporary branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          branches=(
+            "archive-windows-v100"
+            "release/v1.0.0-ryus-gua-rebrand"
+            "v1.0.0-dev"
+            "v1.1.0-artifact"
+            "v1.1.0-dev"
+            "v1.1.0-final-artifact"
+            "v1.1.0-home-formal"
+            "v1.1.0-publish"
+            "v1.1.0-publish-final"
+            "v1.1.1-artifact"
+            "v1.1.1-dev"
+            "v1.1.1-publish"
+            "v1.1.2-artifact"
+            "v1.1.2-boot-styles"
+            "v1.1.2-publish"
+            "v1.2.0-artifact"
+            "v1.2.0-publish"
+            "v1.2.0-publish-trigger"
+            "v1.2.0-ui-icon"
+            "windows-release-v1.0.0"
+            "windows-v1.0.0-dev"
+            "branch-cleanup-temp"
+            "tmp-should-not-exist"
+            "cleanup-all-completed-branches"
+            "cleanup-runner"
+            "cleanup-runner-2"
+          )
+          for b in "${branches[@]}"; do
+            if git ls-remote --exit-code --heads origin "$b" >/dev/null 2>&1; then
+              echo "Deleting $b"
+              git push origin --delete "$b"
+            fi
+          done
+          echo "Remaining heads:"
+          git ls-remote --heads origin
