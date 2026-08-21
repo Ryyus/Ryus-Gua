@@ -157,7 +157,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         private static final int PANEL = Color.rgb(17, 20, 17);
         private static final int GRID = Color.rgb(29, 35, 29);
 
-        private enum State { BOOT, IDLE, CASTING, RESULT, DETAIL, HISTORY, OFFLINE, AI }
+        private enum State { BOOT, IDLE, CASTING, RESULT, DETAIL, BOARD, HISTORY, OFFLINE, AI }
 
         private static final class CoinBody {
             float x, y, vx, vy, angle, angular, targetX, targetY, scale = 1f;
@@ -181,8 +181,10 @@ public class MainActivity extends Activity implements SensorEventListener {
         private final RectF backButton = new RectF();
         private final RectF clearButton = new RectF();
         private final RectF reasoningToggleButton = new RectF();
+        private final RectF copyButton = new RectF();
         private final String[] currentCoins = {"·", "·", "·"};
         private final ZhouYiRepository zhouYi;
+        private final LiuYaoKnowledgeRepository liuYaoKnowledge;
         private final ArrayList<HistoryHit> historyHits = new ArrayList<>();
 
         private State state = State.BOOT;
@@ -196,6 +198,8 @@ public class MainActivity extends Activity implements SensorEventListener {
         private boolean dragging = false;
         private boolean loadedFromHistory = false;
         private String currentHistoryId = "";
+        private long currentCastTimeMillis = 0L;
+        private String yongshenQin = "";
         private boolean aiLoading = false;
         private String aiText = "";
         private String aiReasoning = "";
@@ -264,6 +268,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             this.audio = audio;
             this.vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
             zhouYi = new ZhouYiRepository(context);
+            liuYaoKnowledge = new LiuYaoKnowledgeRepository(context);
             paint.setTypeface(mono);
             paint.setDither(true);
             setBackgroundColor(BG);
@@ -430,6 +435,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         boolean handleBack() {
             if (state == State.BOOT) return true;
             if (state == State.DETAIL) { state = State.RESULT; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
+            if (state == State.BOARD) { state = State.RESULT; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
             if (state == State.HISTORY) { state = State.IDLE; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
             if (state == State.OFFLINE) { state = State.RESULT; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
             if (state == State.AI) { state = State.OFFLINE; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
@@ -547,6 +553,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 case CASTING: drawCasting(c, contentW, contentH); break;
                 case RESULT: drawResult(c, contentW, contentH); break;
                 case DETAIL: drawDetail(c, contentW, contentH); break;
+                case BOARD: drawBoard(c, contentW, contentH); break;
                 case HISTORY: drawHistory(c, contentW, contentH); break;
                 case OFFLINE: drawOffline(c, contentW, contentH); break;
                 case AI: drawAi(c, contentW, contentH); break;
@@ -897,13 +904,15 @@ public class MainActivity extends Activity implements SensorEventListener {
             auxLeftButton.set(dp(20), y1, w/3f-dp(4), y2-dp(7));
             rightButton.set(w/3f+dp(4), y1, w*2f/3f-dp(4), y2-dp(7));
             auxRightButton.set(w*2f/3f+dp(4), y1, w-dp(20), y2-dp(7));
-            leftButton.set(dp(20), y2, w/2f-dp(5), y3-dp(7));
-            settingsButton.set(w/2f+dp(5), y2, w-dp(20), y3-dp(7));
+            leftButton.set(dp(20), y2, w/3f-dp(4), y3-dp(7));
+            copyButton.set(w/3f+dp(4), y2, w*2f/3f-dp(4), y3-dp(7));
+            settingsButton.set(w*2f/3f+dp(4), y2, w-dp(20), y3-dp(7));
             primaryButton.set(dp(20), y3, w-dp(20), h-dp(8));
             button(c, auxLeftButton, "经文", GOLD, false, 11);
-            button(c, rightButton, "解卦", GOLD, true, 11);
+            button(c, rightButton, "排盘", GOLD, true, 11);
             button(c, auxRightButton, "历史", MUTED, false, 11);
-            button(c, leftButton, "复制", FG, false, 10);
+            button(c, leftButton, "解卦", GOLD, false, 10);
+            button(c, copyButton, "复制", FG, false, 10);
             button(c, settingsButton, "设置", MUTED, false, 10);
             button(c, primaryButton, "再起一卦 / RECAST", MUTED, false, 9);
         }
@@ -917,6 +926,81 @@ public class MainActivity extends Activity implements SensorEventListener {
                 else out[i] = v;
             }
             return out;
+        }
+
+        private LiuYaoBoard.Board currentLiuYaoBoard() {
+            long when = currentCastTimeMillis > 0L ? currentCastTimeMillis : System.currentTimeMillis();
+            return LiuYaoBoard.cast(lines, when, yongshenQin);
+        }
+
+        private void drawBoard(Canvas c, float w, float h) {
+            backButton.set(w - dp(78), dp(86), w - dp(20), dp(116));
+            button(c, backButton, "返回", MUTED, false, 9);
+            text(c, "六爻排盘", dp(20), dp(108), 15, GOLD, Paint.Align.LEFT, true);
+            text(c, "NAJIA / LOCAL BOARD", dp(20), dp(124), 7.5f, MUTED, Paint.Align.LEFT, true);
+            LiuYaoBoard.Board board = currentLiuYaoBoard();
+            c.save();
+            c.clipRect(0, dp(136), w, h - dp(82));
+            float y = dp(158) - scrollOffset;
+            y = wrapped(c, board.toPlainText(), dp(20), y, w - dp(40), 9.6f, FG, dp(18), false) + dp(18);
+            y = wrapped(c, liuYaoKnowledge.relevantDigest(board), dp(20), y, w - dp(40), 9.2f, MUTED, dp(17), false) + dp(18);
+            maxScroll = Math.max(0, y + scrollOffset - (h - dp(82)) + dp(20));
+            c.restore();
+            auxLeftButton.set(dp(20), h-dp(69), w/3f-dp(4), h-dp(15));
+            rightButton.set(w/3f+dp(4), h-dp(69), w*2f/3f-dp(4), h-dp(15));
+            auxRightButton.set(w*2f/3f+dp(4), h-dp(69), w-dp(20), h-dp(15));
+            button(c, auxLeftButton, yongshenQin.isEmpty() ? "取用神" : yongshenQin, GOLD, false, 9.5f);
+            button(c, rightButton, "复制排盘", FG, false, 9.5f);
+            button(c, auxRightButton, "术理索引", GOLD, true, 9.5f);
+        }
+
+        private void showYongshenDialog() {
+            final String[] items = {"未指定", "父母", "兄弟", "子孙", "妻财", "官鬼"};
+            int checked = 0;
+            for (int i=1;i<items.length;i++) if (items[i].equals(yongshenQin)) checked=i;
+            AlertDialog dialog = new AlertDialog.Builder(getContext())
+                    .setTitle("用神取用")
+                    .setSingleChoiceItems(items, checked, (d, which) -> {
+                        yongshenQin = which == 0 ? "" : items[which];
+                        scrollOffset = 0;
+                        d.dismiss();
+                        postInvalidateOnAnimation();
+                    })
+                    .setNegativeButton("取消", null).create();
+            dialog.setOnShowListener(d -> styleSettingsDialog(dialog));
+            dialog.show();
+        }
+
+        private void copyBoard() {
+            ClipboardManager cb = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+            cb.setPrimaryClip(ClipData.newPlainText("柳之卦六爻排盘", currentLiuYaoBoard().toPlainText()));
+            haptic(HapticFeedbackConstants.CLOCK_TICK);
+            Toast.makeText(getContext(), "六爻排盘已复制", Toast.LENGTH_SHORT).show();
+        }
+
+        private void showKnowledgeIndexDialog() {
+            List<LiuYaoKnowledgeRepository.Topic> topics = liuYaoKnowledge.all();
+            String[] items = new String[topics.size()];
+            for (int i=0;i<topics.size();i++) items[i] = topics.get(i).displayTitle();
+            AlertDialog dialog = new AlertDialog.Builder(getContext())
+                    .setTitle("术理索引")
+                    .setItems(items, (d, which) -> showKnowledgeTopic(which))
+                    .setNegativeButton("关闭", null).create();
+            dialog.setOnShowListener(d -> styleSettingsDialog(dialog));
+            dialog.show();
+        }
+
+        private void showKnowledgeTopic(int index) {
+            LiuYaoKnowledgeRepository.Topic topic = liuYaoKnowledge.at(index);
+            if (topic == null) return;
+            TextView text = new TextView(getContext());
+            text.setText(topic.summary + "\n\n" + topic.body + "\n\n来源：Johnson-Jia / liuyao-divination（MIT），柳之卦本地整理。不同流派可能存在不同取法。");
+            text.setTextColor(FG); text.setTextSize(12); text.setLineSpacing(0, 1.28f);
+            int pad=(int)dp(16); text.setPadding(pad,pad,pad,pad); text.setBackgroundColor(BG);
+            ScrollView scroll=new ScrollView(getContext()); scroll.addView(text);
+            AlertDialog dialog = new AlertDialog.Builder(getContext()).setTitle(topic.displayTitle()).setView(scroll)
+                    .setPositiveButton("知悉", null).create();
+            dialog.setOnShowListener(d -> styleSettingsDialog(dialog)); dialog.show();
         }
 
         private void drawDetail(Canvas c, float w, float h) {
@@ -1019,6 +1103,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             System.arraycopy(entry.lines, 0, lines, 0, 6);
             loadedFromHistory = true;
             currentHistoryId = entry.id;
+            currentCastTimeMillis = entry.timeMillis;
+            yongshenQin = "";
             aiText = entry.aiText;
             aiReasoning = entry.aiReasoning;
             aiReasoningSummaryOnly = entry.aiReasoningSummaryOnly;
@@ -1080,7 +1166,9 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         private String offlineReadingText() {
-            return OfflineInterpreter.interpret(lines, zhouYi);
+            LiuYaoBoard.Board board = currentLiuYaoBoard();
+            return OfflineInterpreter.interpret(lines, zhouYi)
+                    + "\n\n【六爻盘面】\n" + board.digest();
         }
 
         private void drawAi(Canvas c, float w, float h) {
@@ -1212,7 +1300,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         @Override public boolean onTouchEvent(MotionEvent e) {
             float x = e.getX() - safeInsetLeft, y = e.getY() - safeInsetTop;
-            if ((state == State.DETAIL || state == State.HISTORY || state == State.OFFLINE || state == State.AI)) {
+            if ((state == State.DETAIL || state == State.BOARD || state == State.HISTORY || state == State.OFFLINE || state == State.AI)) {
                 if (e.getAction() == MotionEvent.ACTION_DOWN) {
                     downY = lastY = y; dragging = false; return true;
                 }
@@ -1227,11 +1315,14 @@ public class MainActivity extends Activity implements SensorEventListener {
                 }
                 if (e.getAction() == MotionEvent.ACTION_UP) {
                     if (!dragging && backButton.contains(x, y)) {
-                        if (state == State.DETAIL || state == State.OFFLINE) state = State.RESULT;
+                        if (state == State.DETAIL || state == State.BOARD || state == State.OFFLINE) state = State.RESULT;
                         else if (state == State.AI) state = State.OFFLINE;
                         else state = State.IDLE;
                         scrollOffset = 0; postInvalidateOnAnimation(); return true;
                     }
+                    if (!dragging && state == State.BOARD && auxLeftButton.contains(x, y)) { showYongshenDialog(); return true; }
+                    if (!dragging && state == State.BOARD && rightButton.contains(x, y)) { copyBoard(); return true; }
+                    if (!dragging && state == State.BOARD && auxRightButton.contains(x, y)) { showKnowledgeIndexDialog(); return true; }
                     if (!dragging && state == State.OFFLINE && auxLeftButton.contains(x, y)) {
                         copyOfflineReading(); return true;
                     }
@@ -1310,9 +1401,10 @@ public class MainActivity extends Activity implements SensorEventListener {
             }
             if (state == State.RESULT) {
                 if (auxLeftButton.contains(x, y)) { pulse(10, 60); state = State.DETAIL; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
+                if (rightButton.contains(x, y)) { pulse(10, 60); state = State.BOARD; scrollOffset = 0; haptic(HapticFeedbackConstants.CONFIRM); postInvalidateOnAnimation(); return true; }
                 if (auxRightButton.contains(x, y)) { pulse(10, 60); state = State.HISTORY; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
-                if (leftButton.contains(x, y)) { copyResult(); return true; }
-                if (rightButton.contains(x, y)) { state = State.OFFLINE; scrollOffset = 0; haptic(HapticFeedbackConstants.CONFIRM); postInvalidateOnAnimation(); return true; }
+                if (leftButton.contains(x, y)) { state = State.OFFLINE; scrollOffset = 0; haptic(HapticFeedbackConstants.CONFIRM); postInvalidateOnAnimation(); return true; }
+                if (copyButton.contains(x, y)) { copyResult(); return true; }
                 if (settingsButton.contains(x, y)) { showSettingsDialog(false); return true; }
                 if (primaryButton.contains(x, y)) { pulse(15, 75); state = State.IDLE; loadedFromHistory = false; postInvalidateOnAnimation(); return true; }
             }
@@ -1332,6 +1424,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             physicsActive = false;
             loadedFromHistory = false;
             currentHistoryId = "";
+            currentCastTimeMillis = 0L;
+            yongshenQin = "";
             aiText = ""; aiReasoning = ""; aiError = ""; aiModel = "";
             state = State.CASTING;
             postInvalidateOnAnimation();
@@ -1411,6 +1505,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             physicsActive = false;
             loadedFromHistory = false;
             currentHistoryId = "";
+            currentCastTimeMillis = 0L;
+            yongshenQin = "";
             aiText = ""; aiReasoning = ""; aiError = ""; aiModel = "";
             formalCastingActive = true;
             formalAwaitingManual = false;
@@ -1638,6 +1734,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             state = State.RESULT;
             HistoryStore.Entry savedEntry = HistoryStore.add(getContext(), lines, wasFormal);
             currentHistoryId = savedEntry.id;
+            currentCastTimeMillis = savedEntry.timeMillis;
             recordCompletedCast(wasFormal);
             if (soundEnabled) audio.complete();
             ritualPulse();
@@ -1683,10 +1780,14 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         private String aiPrompt() {
-            return resultText() + "\n\n【本机离线解卦】\n" + offlineReadingText()
-                    + "\n\n请以上述卦象事实与本机离线取用为基础生成最终解读，不要重新计算卦象，也不要复述全部原始数据。"
-                    + "按“卦意 / 动爻（如有） / 变卦 / 建议”四部分输出；全文控制在300至450个中文字符，最多不超过500个中文字符。"
-                    + "最终回答中不要包含思考过程、分析草稿、reasoning、thinking 或 <think> 标签。";
+            LiuYaoBoard.Board board = currentLiuYaoBoard();
+            return resultText()
+                    + "\n\n" + board.toPlainText()
+                    + "\n\n" + liuYaoKnowledge.relevantDigest(board)
+                    + "\n\n【本机离线解卦】\n" + offlineReadingText()
+                    + "\n\n请以上述卦象、六爻排盘事实和本机术理索引为基础生成最终解读，不要重新计算排盘，也不要复述全部原始数据。"
+                    + "如未指定用神，不要擅自假定占问类别；按“卦意 / 六爻盘面 / 动变 / 建议”四部分输出。"
+                    + "全文控制在350至550个中文字符，最多不超过650个中文字符。最终回答不要包含思考过程、分析草稿、reasoning、thinking 或 <think> 标签。";
         }
 
         private void copyResult() {
@@ -1849,6 +1950,10 @@ public class MainActivity extends Activity implements SensorEventListener {
             root.addView(ai);
             TextView aiSummaryView = (TextView) ai.getChildAt(1);
             ai.setOnClickListener(v -> showAiSettingsPanel(false, () -> aiSummaryView.setText(aiSettingsSummary(AiSettingsStore.load(ctx)))));
+
+            LinearLayout theory = settingsCard(ctx, "术理索引", "十一专题完全离线");
+            root.addView(theory);
+            theory.setOnClickListener(v -> showKnowledgeIndexDialog());
 
             LinearLayout update = settingsCard(ctx, "版本更新", "国内优先多源检查");
             root.addView(update);
