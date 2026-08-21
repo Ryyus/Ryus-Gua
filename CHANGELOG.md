@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.0
+- 中文：设置中心统一为深色圆角卡片，并将交互项改为现代 Switch；同类设置标题统一四字、说明统一八字。
+- 中文：新增“开屏进度”开关；新安装默认开启音效反馈、动效呈现、垂直翻转，其余交互项默认关闭。
+- 中文：正式起卦加入五分钟节制规则；已完成正式起卦五分钟内不可再次正式起卦，取消不计入；最近五分钟已有两次普通起卦时同样暂缓正式起卦。
+- 中文：受限状态使用《蹇》“往蹇来誉”，提示引用《蒙》“初筮告，再三渎，渎则不告”。
+- 中文：更新检查改为 jsDelivr 国内友好 CDN 优先、GitHub 兜底，并为 Standard / Legacy 增加可回退的镜像 APK 地址。
+- English: Modernized Settings with dark rounded cards and native switches, plus consistent four-character titles and eight-character descriptions for comparable Chinese UI copy.
+- English: Added a boot-progress toggle and changed fresh-install defaults to Sound, Animation, and Vertical Flip enabled.
+- English: Added a five-minute Formal Casting guard; cancelled casts do not count, and two completed ordinary casts within the rolling five-minute window also pause Formal Casting.
+- English: Update checks now prefer jsDelivr with GitHub fallback, including mirror/fallback APK URLs for both Standard and Legacy variants.
+
 ## 1.2.0
 - 中文：主页普通起卦主按钮由“按下成卦”改为“一念既起 · 六爻将成”；手动逐爻模式仍保留“按下 · 掷第一爻”。
 - 中文：应用图标重绘为无边框现代扁平风格，采用深绿底、淡色流线、米白六爻与灰绿柳枝，延续主页淡白色条纹的视觉语言。
