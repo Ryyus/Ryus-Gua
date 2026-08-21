@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# Targeted compile-only fix: Java reserves the keyword `void`.
 board = Path('app/src/main/java/com/ryusgua/app/LiuYaoBoard.java')
 s = board.read_text(encoding='utf-8')
 s = s.replace(',void,trueVoid,', ',xunVoid,trueVoid,')
