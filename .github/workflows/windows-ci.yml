@@ -1,0 +1,44 @@
+name: Windows CI
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "windows/**"
+      - ".github/workflows/windows-ci.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "windows/**"
+      - ".github/workflows/windows-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  windows-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Ensure ImageMagick
+        shell: pwsh
+        run: |
+          if (-not (Get-Command magick -ErrorAction SilentlyContinue)) {
+            choco install imagemagick -y --no-progress
+          }
+      - name: Build portable Windows app and run self-test
+        shell: pwsh
+        run: |
+          $version = (Get-Content windows/VERSION -Raw).Trim()
+          pwsh windows/build.ps1 -Version $version -SkipInstaller
+          & "windows/build/app-image/RyusGua/RyusGua.exe" --self-test
+          if ($LASTEXITCODE -ne 0) { throw "Packaged EXE self-test failed" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable-ci
+          path: windows/build/dist/*
+          retention-days: 7
