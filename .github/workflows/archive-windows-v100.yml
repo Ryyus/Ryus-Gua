@@ -1,16 +1,17 @@
 name: Archive Windows v1.0.0 release
 
 on:
-  push:
+  pull_request:
     branches: ["main"]
     paths:
-      - ".github/workflows/archive-windows-v100.yml"
+      - "release-windows/archive-v100.txt"
 
 permissions:
   contents: write
 
 jobs:
   archive:
+    if: github.head_ref == 'archive-windows-v100'
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
@@ -20,4 +21,5 @@ jobs:
         run: |
           set -euo pipefail
           gh release edit windows-v1.0.0 --repo Ryyus/Ryus-Gua --draft
-          gh release view windows-v1.0.0 --repo Ryyus/Ryus-Gua --json tagName,name,isDraft
+          gh release view windows-v1.0.0 --repo Ryyus/Ryus-Gua --json tagName,name,isDraft | tee /tmp/archive.json
+          grep -q '"isDraft":true' /tmp/archive.json
