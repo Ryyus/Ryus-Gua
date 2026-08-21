@@ -1,11 +1,20 @@
 # 柳之卦 · Ryu's Gua
 
-> **正式版 / Stable release: 1.3.0**  
+> **正式版 / Stable release: 1.4.0**  
 > **Android package:** `com.ryusgua.app`
 
 ## 中文
 
 **柳之卦（Ryu's Gua）** 是一款以三钱六爻为核心交互的 Android《周易》文化应用。1.0 起项目与 Android 应用统一使用“柳之卦”这一名称，并启用全新的包名 `com.ryusgua.app`。
+
+### 1.4.0 本地六爻排盘
+
+- 新增完全离线的 **六爻纳甲排盘**：八宫、世应、纳甲、六亲、六神、月建日辰、旬空、旺衰、空破暗动、动爻化变、墓库、三合六合六冲、卦变与反伏。
+- 结果页新增 **排盘** 页面，可选择父母/兄弟/子孙/妻财/官鬼为用神，并复制完整盘面。
+- 新增 **11 专题本地术理索引**，排盘与规则检索均不需要网络；《周易》卦辞爻辞继续复用既有本地数据，不重复引入。
+- 离线解卦会附加当前六爻盘面摘要；可选 AI 解卦会使用当前排盘事实与相关本地术理摘要。
+- 六爻规则与静态表参考并重新实现自 MIT 授权的 `Johnson-Jia/liuyao-divination`，许可与版权声明保留在 `THIRD_PARTY_NOTICES.md`。
+- 版本号提升至 **1.4.0 / versionCode 140**。
 
 ### 1.3.0 交互与更新
 
@@ -90,6 +99,15 @@ gradle assembleStandardDebug assembleLegacyDebug
 ## English
 
 **Ryu's Gua (柳之卦)** is an Android I Ching / Zhou Yi cultural app built around the traditional three-coin, six-line casting interaction. Starting with 1.0, the project and the Android app share one formal identity and use the new package name `com.ryusgua.app`.
+
+### What's new in 1.4.0
+
+- Added a fully local Java-native Liuyao Najia board: Eight Palaces, Shi/Ying, Najia stems/branches, Six Relations, Six Spirits, month/day influence, Xunkong, strength, breaks/dark movement, moving-line transformations, tombs, combinations/clashes, palace transformation, Fanyin and Fuyin.
+- Added a dedicated **Board** page with optional Yongshen selection and full-board copy.
+- Added an **11-topic offline Liuyao rule index**; the existing local Zhouyi text remains the canonical hexagram/line text source.
+- Offline readings now include the computed board facts, while optional AI readings receive only the relevant local rule digest plus the board.
+- Liuyao rules/static tables were reimplemented from the MIT-licensed `Johnson-Jia/liuyao-divination`; attribution is preserved in `THIRD_PARTY_NOTICES.md`.
+- Version bumped to **1.4.0 / versionCode 140**.
 
 ### What's new in 1.3.0
 

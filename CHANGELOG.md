@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.0
+- 中文：新增 Java 原生、完全离线的六爻纳甲排盘：八宫世应、纳甲、六亲六神、月建日辰、旬空、旺衰、空破暗动、动爻化变、墓库、三合六合六冲、卦变与反吟伏吟。
+- 中文：结果页新增“排盘”，支持可选用神、复制完整盘面与打开 11 专题本地术理索引。
+- 中文：离线解卦追加六爻盘面摘要；可选 AI 解卦会同时使用当前盘面事实与相关本地术理摘要，不再只依赖卦辞/动爻。
+- 中文：《周易》卦辞爻辞继续复用既有本地 `zhouyi.json`；六爻规则与静态表参考并重新实现自 MIT 授权的 Johnson-Jia/liuyao-divination，并保留第三方许可声明。
+- 中文：版本提升至 1.4.0 / versionCode 140。
+- English: Added a Java-native, fully offline Liuyao Najia board engine covering Eight Palaces, Shi/Ying, Najia, Six Relations/Spirits, calendar strength, void/break/dark movement, transformations, tombs, combinations/clashes, palace transformation, Fanyin and Fuyin.
+- English: Added a Board page with optional Yongshen selection, full-board copy, and an 11-topic local rule index.
+- English: Offline and optional AI readings now receive computed board facts and only the relevant local rule digest.
+- English: Reused the existing local Zhouyi text and preserved the MIT attribution for Johnson-Jia/liuyao-divination.
+
 ## 1.3.0
 - 中文：设置中心统一为深色圆角卡片，并将交互项改为现代 Switch；同类设置标题统一四字、说明统一八字。
 - 中文：新增“开屏进度”开关；新安装默认开启音效反馈、动效呈现、垂直翻转，其余交互项默认关闭。
