@@ -1,4 +1,5 @@
 from pathlib import Path
+# Normalize Java escape sequences before applying the generated patch.
 p=Path('tools/apply_v140.py')
 s=p.read_text(encoding='utf-8')
 s=s.replace("rep('''", "rep(r'''")
