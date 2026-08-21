@@ -1,0 +1,23 @@
+name: Archive Windows v1.0.0 release
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/archive-windows-v100.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Convert public Windows v1.0.0 release to draft
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release edit windows-v1.0.0 --repo Ryyus/Ryus-Gua --draft
+          gh release view windows-v1.0.0 --repo Ryyus/Ryus-Gua --json tagName,name,isDraft
