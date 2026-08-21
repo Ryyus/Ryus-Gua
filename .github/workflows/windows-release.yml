@@ -1,11 +1,10 @@
 name: Windows Release
 
 on:
-  push:
+  pull_request:
     branches: ["main"]
     paths:
-      - "windows/**"
-      - ".github/workflows/windows-release.yml"
+      - "windows/RELEASE_TRIGGER.txt"
   workflow_dispatch:
 
 permissions:
@@ -13,12 +12,15 @@ permissions:
 
 jobs:
   build:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'windows-release-')
     runs-on: windows-latest
     outputs:
       version: ${{ steps.meta.outputs.version }}
       tag: ${{ steps.meta.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -76,6 +78,7 @@ jobs:
           retention-days: 30
 
   release:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'windows-release-')
     needs: build
     runs-on: ubuntu-latest
     env:
@@ -123,7 +126,7 @@ jobs:
 
           gh release delete "$TAG" --repo Ryyus/Ryus-Gua --yes --cleanup-tag 2>/dev/null || true
           gh release create "$TAG" --repo Ryyus/Ryus-Gua \
-            --target "${{ github.sha }}" \
+            --target "${{ github.event.pull_request.base.sha || github.sha }}" \
             --title "柳之卦 · Ryu's Gua — Windows ${VERSION}" \
             --notes-file /tmp/notes.md \
             dist/*
