@@ -1,0 +1,156 @@
+name: Publish v1.3.0 final
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "release/v130-signed.patch"
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  reconstruct:
+    if: github.head_ref == 'v1.3.0-mirror'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v1.3.0-mirror
+          fetch-depth: 0
+          token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: v1.3.0-unsigned-release-candidate
+          path: unsigned
+          github-token: ${{ github.token }}
+          run-id: 32464107684
+      - name: Reconstruct and verify signed APKs
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp unsigned/RyusGua-v1.3.0-standard-unsigned-aligned.apk standard.apk
+          cp unsigned/RyusGua-v1.3.0-legacy-unsigned-aligned.apk legacy.apk
+          git apply --binary release/v130-signed.patch
+          echo "ec3c526c5fbc108091848909e632476bb4133b3803274d916318150276a00913  standard.apk" | sha256sum -c -
+          echo "41f491e5b389cfb42b5706db335308f45da43c9309c77eb2903837b3488ff772  legacy.apk" | sha256sum -c -
+          java -jar unsigned/apksigner.jar verify --verbose --print-certs standard.apk | tee standard-cert.txt
+          java -jar unsigned/apksigner.jar verify --verbose --print-certs legacy.apk | tee legacy-cert.txt
+          grep -qi "14b5ac4ba6814aa62ee254b7a7f6454707350f32cc695f8f240d2f28250f8c5d" standard-cert.txt
+          grep -qi "14b5ac4ba6814aa62ee254b7a7f6454707350f32cc695f8f240d2f28250f8c5d" legacy-cert.txt
+          mkdir -p update/releases/v1.3.0 signed
+          cp standard.apk update/releases/v1.3.0/RyusGua-v1.3.0-standard.apk
+          cp legacy.apk update/releases/v1.3.0/RyusGua-v1.3.0-legacy.apk
+          cp standard.apk signed/RyusGua-v1.3.0-standard.apk
+          cp legacy.apk signed/RyusGua-v1.3.0-legacy.apk
+          (cd signed && sha256sum *.apk > SHA256SUMS.txt)
+          cp signed/SHA256SUMS.txt update/releases/v1.3.0/SHA256SUMS.txt
+      - name: Commit CDN mirror files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm release/v130-signed.patch
+          git add update/releases/v1.3.0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Add v1.3.0 signed CDN mirror assets"
+          git push origin HEAD:v1.3.0-mirror
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1.3.0-signed-final
+          path: signed/*
+          retention-days: 30
+
+  legacy-smoke:
+    needs: reconstruct
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: v1.3.0-signed-final
+          path: signed
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 23
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            adb install -r signed/RyusGua-v1.3.0-legacy.apk
+            adb logcat -c
+            adb shell monkey -p com.ryusgua.app -c android.intent.category.LAUNCHER 1
+            sleep 8
+            adb shell pidof com.ryusgua.app | grep -E '[0-9]+'
+            ! adb logcat -d | grep -E 'FATAL EXCEPTION.*com\.ryusgua\.app|Process: com\.ryusgua\.app.*FATAL'
+
+  standard-smoke:
+    needs: reconstruct
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: v1.3.0-signed-final
+          path: signed
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            adb install -r signed/RyusGua-v1.3.0-standard.apk
+            adb logcat -c
+            adb shell monkey -p com.ryusgua.app -c android.intent.category.LAUNCHER 1
+            sleep 8
+            adb shell pidof com.ryusgua.app | grep -E '[0-9]+'
+            ! adb logcat -d | grep -E 'FATAL EXCEPTION.*com\.ryusgua\.app|Process: com\.ryusgua\.app.*FATAL'
+
+  publish:
+    needs: [reconstruct, legacy-smoke, standard-smoke]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v1.3.0-mirror
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: v1.3.0-signed-final
+          path: signed
+      - name: Create GitHub Release
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view v1.3.0 >/dev/null 2>&1 && { echo 'v1.3.0 already exists'; exit 1; } || true
+          gh release create v1.3.0 \
+            signed/RyusGua-v1.3.0-standard.apk \
+            signed/RyusGua-v1.3.0-legacy.apk \
+            signed/SHA256SUMS.txt \
+            --target v1.3.0-mirror \
+            --title "柳之卦 v1.3.0 / Ryu's Gua 1.3.0" \
+            --notes "设置页统一为现代深色卡片与开关；新增开屏进度开关并调整新安装默认项；正式起卦加入五分钟节制规则，取消不计入，五分钟内两次普通成卦也会暂缓正式起卦；更新检查改为 jsDelivr 国内优先、GitHub 兜底。\n\nSettings were modernized, boot-progress control and new defaults were added, Formal Casting gained a five-minute guard, and updates now use a jsDelivr-first multi-source path with GitHub fallback."
+      - name: Verify public Release downloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir verify
+          curl -L --fail --retry 5 --retry-delay 3 -o verify/standard.apk "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.3.0/RyusGua-v1.3.0-standard.apk"
+          curl -L --fail --retry 5 --retry-delay 3 -o verify/legacy.apk "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.3.0/RyusGua-v1.3.0-legacy.apk"
+          echo "ec3c526c5fbc108091848909e632476bb4133b3803274d916318150276a00913  verify/standard.apk" | sha256sum -c -
+          echo "41f491e5b389cfb42b5706db335308f45da43c9309c77eb2903837b3488ff772  verify/legacy.apk" | sha256sum -c -
+      - name: Verify tag mirror and jsDelivr
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 5 --retry-delay 3 -o verify/tag-standard.apk "https://raw.githubusercontent.com/Ryyus/Ryus-Gua/v1.3.0/update/releases/v1.3.0/RyusGua-v1.3.0-standard.apk"
+          echo "ec3c526c5fbc108091848909e632476bb4133b3803274d916318150276a00913  verify/tag-standard.apk" | sha256sum -c -
+          for i in 1 2 3 4 5 6; do
+            if curl -L --fail --max-time 30 -o verify/cdn-standard.apk "https://cdn.jsdelivr.net/gh/Ryyus/Ryus-Gua@v1.3.0/update/releases/v1.3.0/RyusGua-v1.3.0-standard.apk"; then break; fi
+            sleep 10
+          done
+          echo "ec3c526c5fbc108091848909e632476bb4133b3803274d916318150276a00913  verify/cdn-standard.apk" | sha256sum -c -
