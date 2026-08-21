@@ -1,0 +1,137 @@
+name: Windows Release
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "windows/**"
+      - ".github/workflows/windows-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Ensure ImageMagick
+        shell: pwsh
+        run: |
+          if (-not (Get-Command magick -ErrorAction SilentlyContinue)) {
+            choco install imagemagick -y --no-progress
+          }
+
+      - id: meta
+        name: Resolve Windows version
+        shell: pwsh
+        run: |
+          $version = (Get-Content windows/VERSION -Raw).Trim()
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=windows-v$version" >> $env:GITHUB_OUTPUT
+
+      - name: Ensure WiX Toolset for jpackage EXE
+        shell: pwsh
+        run: |
+          $candidates = @(
+            "C:\Program Files (x86)\WiX Toolset v3.14\bin",
+            "C:\Program Files (x86)\WiX Toolset v3.11\bin",
+            "C:\Program Files\WiX Toolset v3.14\bin"
+          )
+          foreach ($p in $candidates) {
+            if (Test-Path $p) {
+              $p | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+              exit 0
+            }
+          }
+          choco install wixtoolset -y --no-progress
+          $installed = Get-ChildItem "C:\Program Files (x86)" -Directory -Filter "WiX Toolset*" -ErrorAction SilentlyContinue |
+            Sort-Object Name -Descending | Select-Object -First 1
+          if ($installed) {
+            (Join-Path $installed.FullName "bin") | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          }
+
+      - name: Build Windows installer and portable package
+        shell: pwsh
+        run: |
+          $version = "${{ steps.meta.outputs.version }}"
+          pwsh windows/build.ps1 -Version $version
+          $setup = "windows/build/dist/RyusGua-Windows-v$version-setup.exe"
+          if (-not (Test-Path $setup)) { throw "Windows installer EXE was not produced" }
+          & "windows/build/app-image/RyusGua/RyusGua.exe" --self-test
+          if ($LASTEXITCODE -ne 0) { throw "Packaged EXE self-test failed" }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-${{ steps.meta.outputs.version }}
+          path: windows/build/dist/*
+          retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.build.outputs.tag }}
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-release-${{ needs.build.outputs.version }}
+          path: dist
+      - name: Verify release checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum -c sha256-windows.txt
+          test -f "RyusGua-Windows-v${VERSION}-setup.exe"
+          test -f "RyusGua-Windows-v${VERSION}-portable.zip"
+      - name: Publish Windows release
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/notes.md <<EOF
+          ## 柳之卦 · Ryu's Gua — Windows ${VERSION}
+
+          首个独立 Windows 桌面版。
+
+          - 三钱六爻随机起卦与手动六爻输入
+          - 本卦 / 之卦 / 动爻
+          - 完整《周易》卦辞、爻辞
+          - 与 Android 共用三钱六爻核心与《周易》数据源
+          - 完全离线解卦与最近 30 条本地历史
+          - 深绿、淡色流线、柳枝与六爻的桌面视觉
+          - 安装版 EXE + 免安装 portable ZIP
+
+          **安装版：** \`RyusGua-Windows-v${VERSION}-setup.exe\`
+
+          **免安装版：** 解压 \`RyusGua-Windows-v${VERSION}-portable.zip\`，运行其中的 \`RyusGua.exe\`。便携版自带私有 Java Runtime，无需预装 Java。
+
+          Android 与 Windows 使用独立版本号：
+          - Android：\`vX.Y.Z\`
+          - Windows：\`windows-vX.Y.Z\`
+          EOF
+
+          gh release delete "$TAG" --repo Ryyus/Ryus-Gua --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" --repo Ryyus/Ryus-Gua \
+            --target "${{ github.sha }}" \
+            --title "柳之卦 · Ryu's Gua — Windows ${VERSION}" \
+            --notes-file /tmp/notes.md \
+            dist/*
+      - name: Re-download public assets and verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir public
+          gh release download "$TAG" --repo Ryyus/Ryus-Gua -D public
+          cd public
+          sha256sum -c sha256-windows.txt
