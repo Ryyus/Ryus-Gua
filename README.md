@@ -1,11 +1,20 @@
 # 柳之卦 · Ryu's Gua
 
-> **正式版 / Stable release: 1.2.0**  
+> **正式版 / Stable release: 1.3.0**  
 > **Android package:** `com.ryusgua.app`
 
 ## 中文
 
 **柳之卦（Ryu's Gua）** 是一款以三钱六爻为核心交互的 Android《周易》文化应用。1.0 起项目与 Android 应用统一使用“柳之卦”这一名称，并启用全新的包名 `com.ryusgua.app`。
+
+### 1.3.0 交互与更新
+
+- 设置页同步主界面的深色卡片视觉，交互项改用现代 Switch 开关，并统一同类四字标题与八字说明。
+- 新增 **开屏进度** 开关；新安装默认开启 **音效反馈、动效呈现、垂直翻转**，触感、摇动和手动逐爻默认关闭。
+- **正式起卦** 增加五分钟节制规则：完成一次正式起卦后五分钟内不可再次正式起卦；取消不计入；五分钟内完成两次普通起卦也会暂缓正式起卦。
+- 受限提示采用《蒙》“初筮告，再三渎，渎则不告”，主页受限按钮使用《蹇》“往蹇来誉”。
+- 应用内更新改为 **jsDelivr 国内优先 + GitHub 兜底**，版本元数据与 Standard / Legacy APK 都具备多源下载路径。
+- 版本号提升至 **1.3.0 / versionCode 130**。
 
 ### 1.2.0 视觉更新
 
@@ -48,7 +57,7 @@
 ### 主要功能
 
 - 三钱六爻起卦：6 / 7 / 8 / 9、动爻与变卦
-- 普通起卦与“正式起卦”定时模式
+- 普通起卦与“正式起卦”定时模式，正式模式含五分钟节制规则
 - **7 套可切换开屏样式**，包括经典、古意、原典、仪式、终端与六爻启动方向
 - 经典浮动 / 物理飞出两套铜钱动画与可选垂直翻转
 - 经文、历史、复制、分享、备注与固定（PIN）
@@ -56,6 +65,7 @@
 - AI 解卦支持 OpenAI、DeepSeek、Gemini、通义千问、Kimi 与自定义兼容端点
 - AI 流式输出、思考过程独立折叠、服务商独立 API Key / Endpoint / 模型设置
 - API Key 使用 Android Keystore AES/GCM 加密保存
+- 更新检查与 APK 下载支持 jsDelivr 国内优先、GitHub 兜底
 - 全面屏、刘海/挖孔与 Android 手势导航安全区适配
 
 ### APK 选择
@@ -80,6 +90,15 @@ gradle assembleStandardDebug assembleLegacyDebug
 ## English
 
 **Ryu's Gua (柳之卦)** is an Android I Ching / Zhou Yi cultural app built around the traditional three-coin, six-line casting interaction. Starting with 1.0, the project and the Android app share one formal identity and use the new package name `com.ryusgua.app`.
+
+### What's new in 1.3.0
+
+- Modernized Settings to match the app's dark card visual language, replacing checkbox-style controls with modern switches and consistent copy lengths.
+- Added a boot-progress toggle. Fresh installs now enable sound, animation, and vertical coin flipping by default, while haptics, shake casting, and manual line casting default to off.
+- Added a five-minute Formal Casting guard: completed formal casts start a five-minute cooldown; cancelled casts do not count; two completed normal casts inside the same five-minute window also temporarily block Formal Casting.
+- Uses classical Zhou Yi copy for the guard state, including “初筮告，再三渎，渎则不告” and “往蹇来誉”.
+- Update metadata and APK delivery now use a jsDelivr-first path with GitHub fallback for better accessibility on mainland China networks.
+- Version bumped to **1.3.0 / versionCode 130**.
 
 ### What's new in 1.2.0
 
@@ -122,7 +141,7 @@ gradle assembleStandardDebug assembleLegacyDebug
 ### Highlights
 
 - Three-coin six-line casting with moving lines and changed hexagrams
-- Normal casting and scheduled **Formal Casting** mode
+- Normal casting and scheduled **Formal Casting** mode with a five-minute guard
 - Seven selectable boot-screen styles spanning classic, ritual, classical, terminal, and six-line themes
 - Classic floating / physics launch coin animations with optional vertical flipping
 - Zhou Yi text, history, copy/share, notes, and PIN support
@@ -131,6 +150,7 @@ gradle assembleStandardDebug assembleLegacyDebug
 - Streaming AI output with a separately collapsible reasoning/thinking section
 - Provider-scoped API keys, endpoints, models, and protocol settings
 - API keys protected with Android Keystore AES/GCM
+- jsDelivr-first update delivery with GitHub fallback
 - Edge-to-edge, cutout, and gesture-navigation safe-area support
 
 ### APK variants
