@@ -14,6 +14,10 @@ android {
         versionName '1.3.0'
     }
 
+    buildFeatures {
+        buildConfig true
+    }
+
     flavorDimensions 'compat'
     productFlavors {
         standard {
