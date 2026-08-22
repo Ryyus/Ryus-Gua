@@ -1,0 +1,1 @@
+Publish the exact locally signed v1.4.0 Standard and Legacy APKs after API 23/API 35 smoke tests.
