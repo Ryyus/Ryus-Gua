@@ -1,0 +1,229 @@
+name: Publish v1.4.0 final
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "release/v1.4.0/trigger.txt"
+
+permissions:
+  actions: read
+  contents: write
+  pull-requests: write
+
+env:
+  STANDARD_SHA: 372d54541a0ca4887df3379628934e77abb787576e16fcb50cb2e501da2146f8
+  LEGACY_SHA: 3e181f02c6fd33486001c9410796b94ff0ab8b514d7cf3e4ba06c047f220b92d
+  CERT_SHA: 14b5ac4ba6814aa62ee254b7a7f6454707350f32cc695f8f240d2f28250f8c5d
+  UNSIGNED_ARTIFACT_ID: "9444514193"
+
+jobs:
+  prepare:
+    if: github.head_ref == 'v1.4.0-publish'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v1.4.0-publish
+      - uses: android-actions/setup-android@v3
+      - name: Restore and verify exact signed APKs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zstd unzip
+          mkdir -p /tmp/unsigned signed
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${UNSIGNED_ARTIFACT_ID}/zip" > /tmp/unsigned.zip
+          unzip -q /tmp/unsigned.zip -d /tmp/unsigned
+          zstd -d --patch-from=/tmp/unsigned/RyusGua-v1.4.0-standard-unsigned-aligned.apk \
+            release/v1.4.0/standard.patch.zst -o signed/RyusGua-v1.4.0-standard.apk -f
+          zstd -d --patch-from=/tmp/unsigned/RyusGua-v1.4.0-legacy-unsigned-aligned.apk \
+            release/v1.4.0/legacy.patch.zst -o signed/RyusGua-v1.4.0-legacy.apk -f
+          echo "$STANDARD_SHA  signed/RyusGua-v1.4.0-standard.apk" | sha256sum -c -
+          echo "$LEGACY_SHA  signed/RyusGua-v1.4.0-legacy.apk" | sha256sum -c -
+          java -jar /tmp/unsigned/apksigner.jar verify --verbose --print-certs signed/RyusGua-v1.4.0-standard.apk | tee /tmp/std-cert.txt
+          java -jar /tmp/unsigned/apksigner.jar verify --verbose --print-certs signed/RyusGua-v1.4.0-legacy.apk | tee /tmp/legacy-cert.txt
+          grep -qi "Signer #1 certificate SHA-256 digest: $CERT_SHA" /tmp/std-cert.txt
+          grep -qi "Signer #1 certificate SHA-256 digest: $CERT_SHA" /tmp/legacy-cert.txt
+          sdkmanager "build-tools;35.0.0" >/dev/null
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging signed/RyusGua-v1.4.0-standard.apk | tee /tmp/standard.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging signed/RyusGua-v1.4.0-legacy.apk | tee /tmp/legacy.txt
+          grep -q "package: name='com.ryusgua.app' versionCode='140' versionName='1.4.0'" /tmp/standard.txt
+          grep -q "package: name='com.ryusgua.app' versionCode='140' versionName='1.4.0'" /tmp/legacy.txt
+          grep -q "sdkVersion:'26'" /tmp/standard.txt
+          grep -q "sdkVersion:'23'" /tmp/legacy.txt
+          printf '%s  %s\n%s  %s\n' \
+            "$STANDARD_SHA" "RyusGua-v1.4.0-standard.apk" \
+            "$LEGACY_SHA" "RyusGua-v1.4.0-legacy.apk" > signed/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1.4.0-signed-final
+          path: signed/*
+          retention-days: 30
+
+  smoke-legacy:
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: v1.4.0-signed-final
+          path: signed
+      - name: Enable KVM
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm || true
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 23
+          target: default
+          arch: x86_64
+          profile: Nexus 5
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            adb install -r signed/RyusGua-v1.4.0-legacy.apk
+            adb logcat -c
+            adb shell am force-stop com.ryusgua.app || true
+            adb shell am start -W -n com.ryusgua.app/.MainActivity | tee /tmp/start.txt
+            grep -q 'Status: ok' /tmp/start.txt
+            sleep 6
+            adb shell pidof com.ryusgua.app | grep -E '[0-9]+'
+            ! adb logcat -d | grep -E 'FATAL EXCEPTION.*com\\.ryusgua\\.app|Process: com\\.ryusgua\\.app.*FATAL'
+
+  smoke-standard:
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: v1.4.0-signed-final
+          path: signed
+      - name: Enable KVM
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm || true
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            adb install -r signed/RyusGua-v1.4.0-standard.apk
+            adb logcat -c
+            adb shell am force-stop com.ryusgua.app || true
+            adb shell am start -W -n com.ryusgua.app/.MainActivity | tee /tmp/start.txt
+            grep -q 'Status: ok' /tmp/start.txt
+            sleep 6
+            adb shell pidof com.ryusgua.app | grep -E '[0-9]+'
+            ! adb logcat -d | grep -E 'FATAL EXCEPTION.*com\\.ryusgua\\.app|Process: com\\.ryusgua\\.app.*FATAL'
+
+  publish:
+    needs: [prepare, smoke-legacy, smoke-standard]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: v1.4.0-signed-final
+          path: signed
+      - name: Commit immutable mirror and remove one-time workflows
+        id: mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p update/releases/v1.4.0
+          cp signed/RyusGua-v1.4.0-standard.apk update/releases/v1.4.0/
+          cp signed/RyusGua-v1.4.0-legacy.apk update/releases/v1.4.0/
+          cp signed/SHA256SUMS.txt update/releases/v1.4.0/
+          git rm -f .github/workflows/build-v140-release.yml .github/workflows/publish-v140-final.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add update/releases/v1.4.0
+          git commit -m "Publish v1.4.0 signed Android release"
+          git push origin HEAD:main
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Create or repair GitHub Release
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/release-notes.md <<'EOF'
+          ## 中文
+
+          **柳之卦 v1.4.0 · 本地六爻排盘**
+
+          - 新增 Java 原生、完全离线的六爻纳甲排盘：八宫世应、纳甲、六亲六神、月建日辰、旬空、旺衰、空破暗动、动爻化变、墓库、三合六合六冲、卦变与反吟伏吟。
+          - 结果页新增“排盘”，支持选择父母、兄弟、子孙、妻财或官鬼为用神，复制完整盘面，并打开 11 专题本地术理索引。
+          - 离线解卦会附加当前六爻盘面摘要；可选 AI 解卦会使用当前盘面事实与相关本地术理摘要。
+          - 《周易》卦辞爻辞继续复用既有本地数据；六爻规则与静态表参考并重新实现自 MIT 授权的 `Johnson-Jia/liuyao-divination`，版权与许可证见 `THIRD_PARTY_NOTICES.md`。
+          - `versionCode 140` / `versionName 1.4.0`。
+
+          发布前已验证长期正式签名、Standard/API 35 与 Legacy/API 23 启动、版本/最低系统信息，以及最终 APK 的 SHA-256。
+
+          ## English
+
+          **Ryu's Gua v1.4.0 · Local Liuyao Board**
+
+          - Added a Java-native, fully offline Liuyao Najia board engine covering the Eight Palaces, Shi/Ying, Najia, Six Relations and Spirits, calendar strength, void/break/dark movement, transformations, tombs, combinations/clashes, palace transformation, Fanyin and Fuyin.
+          - Added a Board page with optional Yongshen selection, full-board copy, and an 11-topic local rule index.
+          - Offline and optional AI readings now receive the computed board facts and the relevant local rule digest.
+          - Existing local Zhouyi text remains the canonical source. Liuyao rules/static tables were reimplemented from the MIT-licensed `Johnson-Jia/liuyao-divination`; attribution is preserved in `THIRD_PARTY_NOTICES.md`.
+          - `versionCode 140` / `versionName 1.4.0`.
+
+          The exact published APKs passed long-term release-signature verification, Standard/API 35 and Legacy/API 23 startup tests, package/minSdk checks, and SHA-256 verification.
+          EOF
+          target='${{ steps.mirror.outputs.sha }}'
+          if gh release view v1.4.0 >/dev/null 2>&1; then
+            gh release upload v1.4.0 signed/RyusGua-v1.4.0-standard.apk signed/RyusGua-v1.4.0-legacy.apk signed/SHA256SUMS.txt --clobber
+            gh release edit v1.4.0 --target "$target" --title "柳之卦 v1.4.0 / Ryu's Gua 1.4.0" --notes-file /tmp/release-notes.md
+          else
+            gh release create v1.4.0 signed/RyusGua-v1.4.0-standard.apk signed/RyusGua-v1.4.0-legacy.apk signed/SHA256SUMS.txt --target "$target" --title "柳之卦 v1.4.0 / Ryu's Gua 1.4.0" --notes-file /tmp/release-notes.md
+          fi
+      - name: Verify public GitHub assets and jsDelivr mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/public && mkdir -p /tmp/public
+          gh release download v1.4.0 --pattern '*.apk' --dir /tmp/public
+          echo "$STANDARD_SHA  /tmp/public/RyusGua-v1.4.0-standard.apk" | sha256sum -c -
+          echo "$LEGACY_SHA  /tmp/public/RyusGua-v1.4.0-legacy.apk" | sha256sum -c -
+          for flavor in standard legacy; do
+            if [ "$flavor" = standard ]; then expected="$STANDARD_SHA"; else expected="$LEGACY_SHA"; fi
+            ok=0
+            for i in $(seq 1 18); do
+              if curl -fL --connect-timeout 8 --max-time 30 \
+                "https://cdn.jsdelivr.net/gh/Ryyus/Ryus-Gua@v1.4.0/update/releases/v1.4.0/RyusGua-v1.4.0-$flavor.apk" \
+                -o "/tmp/public/cdn-$flavor.apk"; then
+                ok=1
+                break
+              fi
+              sleep 10
+            done
+            test "$ok" = 1
+            echo "$expected  /tmp/public/cdn-$flavor.apk" | sha256sum -c -
+          done
+      - name: Close temporary PRs and remove temporary branches
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh pr close 29 --repo "$GITHUB_REPOSITORY" || true
+          gh pr close "${{ github.event.pull_request.number }}" --repo "$GITHUB_REPOSITORY" || true
+          for branch in v1.4.0-artifact v1.4.0-dev v1.4.0-publish; do
+            gh api -X DELETE "/repos/${GITHUB_REPOSITORY}/git/refs/heads/$branch" || true
+          done
