@@ -28,3 +28,10 @@ jobs:
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
       - name: Build debug APK
         run: gradle assembleDebug
+      - name: Build unsigned release APKs
+        run: gradle assembleStandardRelease assembleLegacyRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v170-unsigned-release
+          path: app/build/outputs/apk/*/release/*-unsigned.apk
+          retention-days: 1
