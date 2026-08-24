@@ -100,10 +100,6 @@ jobs:
       - name: Commit immutable mirror
         run: |
           set -euo pipefail
-          if gh release view v1.5.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "v1.5.0 already exists; refusing to overwrite"
-            exit 1
-          fi
           mkdir -p update/releases/v1.5.0
           cp signed-apks/RyusGua-v1.5.0-standard.apk update/releases/v1.5.0/
           cp signed-apks/RyusGua-v1.5.0-legacy.apk update/releases/v1.5.0/
@@ -111,8 +107,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add update/releases/v1.5.0
-          git commit -m "Publish v1.5.0 signed release mirror"
-          git push origin HEAD:main
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish v1.5.0 signed release mirror"
+            git push origin HEAD:main
+          fi
       - name: Create GitHub Release
         run: |
           set -euo pipefail
@@ -140,14 +138,16 @@ jobs:
           Both final APKs retain the long-term v1 signing identity and passed API 23 / API 35 startup smoke tests.
           NOTES
           mirror_commit=$(git rev-parse HEAD)
-          gh release create v1.5.0 \
-            --repo "$GITHUB_REPOSITORY" \
-            --target "$mirror_commit" \
-            --title "柳之卦 v1.5.0 / Ryu's Gua 1.5.0" \
-            --notes-file /tmp/release-notes.md \
-            signed-apks/RyusGua-v1.5.0-standard.apk \
-            signed-apks/RyusGua-v1.5.0-legacy.apk \
-            signed-apks/SHA256SUMS.txt
+          if ! gh release view v1.5.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create v1.5.0 \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$mirror_commit" \
+              --title "柳之卦 v1.5.0 / Ryu's Gua 1.5.0" \
+              --notes-file /tmp/release-notes.md \
+              signed-apks/RyusGua-v1.5.0-standard.apk \
+              signed-apks/RyusGua-v1.5.0-legacy.apk \
+              signed-apks/SHA256SUMS.txt
+          fi
       - name: Verify public downloads
         run: |
           set -euo pipefail
@@ -161,7 +161,7 @@ jobs:
           cp signed-apks/SHA256SUMS.txt /tmp/redownload/
           (cd /tmp/redownload && sha256sum -c SHA256SUMS.txt)
           for item in standard legacy; do
-            expected=$(grep "-$item.apk" signed-apks/SHA256SUMS.txt | cut -d' ' -f1)
+            expected=$(grep -- "-$item.apk" signed-apks/SHA256SUMS.txt | cut -d' ' -f1)
             url="https://cdn.jsdelivr.net/gh/$GITHUB_REPOSITORY@v1.5.0/update/releases/v1.5.0/RyusGua-v1.5.0-$item.apk"
             ok=0
             for attempt in $(seq 1 18); do
