@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.7.0
+- 中文：塔罗主页新增一牌照见、三牌成阵、四象观局三种牌阵；抽牌、翻牌、结果与历史按实际牌数自适应。
+- 中文：78 张塔罗牌、牌阵定义与七篇塔罗索引迁移至独立 `tarot_cards.json`，所有释义为柳之卦独立编写。
+- 中文：新增独立牌义页面与可选 AI 解牌；AI 只解释已抽定的牌、正逆位和牌位，不重新抽牌，并将结果保存到塔罗历史。
+- 中文：交互设置与术理索引随六爻 / 塔罗模式切换；塔罗隐藏铜钱翻转和手动逐爻，提供三种翻牌样式。
+- 中文：优化塔罗牌面层级与几何纹样；中央印章拖动时外框缓缓旋转；右上角模式入口改为无边框；增强经典浮动与星轨回旋效果。
+- 中文：历史兼容 v1.6.0 三牌记录；版本提升至 1.7.0 / versionCode 170。
+- English: Added selectable one-card, three-card, and four-element spreads, JSON-backed Tarot data/reference topics, local card meanings, optional grounded AI readings, mode-aware settings/indexes, refined card faces, rotating seal frames, a borderless mode selector, and stronger Classic/Orbital effects.
+- English: Kept v1.6.0 three-card history compatible and bumped versionName to 1.7.0 / versionCode 170.
+
 ## 1.6.0
 - 中文：右上角静态“易”改为可点击的“六爻 / 塔罗”模式按钮，并新增与应用既有深绿、米白、朱红视觉一致的占卜选择页。
 - 中文：新增完整 78 张塔罗牌与“缘起 / 此刻 / 趋向”三牌阵；三张牌不重复，独立计算正逆位，提供逐牌释义、三牌合参与独立本地历史。

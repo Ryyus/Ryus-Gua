@@ -1,11 +1,22 @@
 # 柳之卦 · Ryu's Gua
 
 > **正式版 / Stable release: 1.6.0**  
+> **开发版本 / Next build: 1.7.0**  
 > **Android package:** `com.ryusgua.app`
 
 ## 中文
 
-**柳之卦（Ryu's Gua）** 是一款以三钱六爻为核心、兼具本地塔罗三牌阵的 Android 占卜文化应用。1.0 起项目与 Android 应用统一使用“柳之卦”这一名称，并启用全新的包名 `com.ryusgua.app`。
+**柳之卦（Ryu's Gua）** 是一款以三钱六爻为核心、兼具本地塔罗牌阵的 Android 占卜文化应用。1.0 起项目与 Android 应用统一使用“柳之卦”这一名称，并启用全新的包名 `com.ryusgua.app`。
+
+### 1.7.0 牌阵、AI 与体系分层
+
+- 塔罗主页新增 **一牌照见 / 三牌成阵 / 四象观局** 三种牌阵，抽牌、结果与历史均按实际牌数自适应。
+- 78 张塔罗牌、三种牌阵与七篇塔罗索引迁移至独立 `tarot_cards.json`；牌义由柳之卦独立编写，不复制未明确授权的第三方解释文本。
+- 离线解牌新增独立 **牌义** 页面；可选 **AI 解牌**只使用本局既定牌阵、正逆位和本地牌义，不会重新抽牌。
+- 六爻与塔罗分别展示适用的交互设置和术理索引：塔罗不再显示铜钱翻转、手动逐爻等六爻专属选项。
+- 塔罗牌面增加花色、正逆位、几何纹样与层级信息；新增依次翻牌、流光显影、轻叠展开三种呈现。
+- 中央印章拖动时外框缓缓旋转，右上角模式入口改为无边框文字按钮；经典浮动与星轨回旋获得更清晰的波纹、轨道和拖尾效果。
+- 版本号提升至 **1.7.0 / versionCode 170**。
 
 ### 1.6.0 六爻 / 塔罗双占卜
 
@@ -87,13 +98,13 @@
 
 - 六爻 / 塔罗双占卜入口，可随时在主页右上角切换
 - 三钱六爻起卦：6 / 7 / 8 / 9、动爻与变卦
-- 完整 78 张塔罗牌三牌阵：缘起 / 此刻 / 趋向、正逆位、本地解牌与独立历史
+- 完整 78 张塔罗牌与三种牌阵：一牌、三牌、四象，含正逆位、本地牌义、AI 解牌与独立历史
 - 普通起卦与“正式起卦”定时模式，正式模式含五分钟节制规则
 - **7 套可切换开屏样式**，包括经典、古意、原典、仪式、终端与六爻启动方向
 - 经典浮动 / 物理飞出 / 星轨回旋三套铜钱动画与可选垂直翻转
 - 经文、历史、复制、分享、备注与固定（PIN）
 - 历史记录保存 `HH:mm:ss`、正式起卦标记与 AI 解卦结果；普通历史保留最近 30 条，PIN 项永久保留
-- AI 解卦支持 OpenAI、DeepSeek、Gemini、通义千问、Kimi 与自定义兼容端点
+- AI 解卦 / 解牌支持 OpenAI、DeepSeek、Gemini、通义千问、Kimi 与自定义兼容端点
 - AI 流式输出、思考过程独立折叠、服务商独立 API Key / Endpoint / 模型设置
 - API Key 使用 Android Keystore AES/GCM 加密保存
 - 更新检查与 APK 下载支持 jsDelivr 国内优先、GitHub 兜底
@@ -120,7 +131,17 @@ gradle assembleStandardDebug assembleLegacyDebug
 
 ## English
 
-**Ryu's Gua (柳之卦)** is an Android divination culture app centered on the traditional three-coin Liuyao interaction and now complemented by an offline three-card Tarot spread. Starting with 1.0, the project and the Android app share one formal identity and use the package name `com.ryusgua.app`.
+**Ryu's Gua (柳之卦)** is an Android divination culture app centered on the traditional three-coin Liuyao interaction and complemented by selectable offline Tarot spreads. Starting with 1.0, the project and the Android app share one formal identity and use the package name `com.ryusgua.app`.
+
+### What's new in 1.7.0
+
+- Added selectable one-card, three-card, and four-element Tarot spreads with adaptive casting, result, and history layouts.
+- Moved all 78 cards, spread definitions, and seven Tarot reference topics into an independently authored `tarot_cards.json` resource.
+- Added a dedicated local Card Meanings page and optional Tarot AI reading grounded in the already drawn cards; AI never redraws the spread.
+- Split Interaction Settings and the reference index by divination system, so Tarot no longer exposes Liuyao-only coin/manual controls.
+- Refined Tarot card faces and added Cascade, Luminous Reveal, and Gentle Fan presentation styles.
+- Added a rotating seal frame while dragging, made the top-right mode selector borderless, and strengthened Classic Float / Orbital Spiral effects.
+- Bumped the app to **1.7.0 / versionCode 170**.
 
 ### What's new in 1.6.0
 

@@ -157,7 +157,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         private static final int PANEL = Color.rgb(17, 20, 17);
         private static final int GRID = Color.rgb(29, 35, 29);
 
-        private enum State { BOOT, IDLE, CASTING, RESULT, DETAIL, BOARD, HISTORY, OFFLINE, AI, TAROT_CASTING, TAROT_RESULT, TAROT_DETAIL }
+        private enum State { BOOT, IDLE, CASTING, RESULT, DETAIL, BOARD, HISTORY, OFFLINE, AI, TAROT_CASTING, TAROT_RESULT, TAROT_DETAIL, TAROT_TEXT }
 
         private static final class CoinBody {
             float x, y, vx, vy, angle, angular, targetX, targetY, scale = 1f;
@@ -183,10 +183,12 @@ public class MainActivity extends Activity implements SensorEventListener {
         private final RectF reasoningToggleButton = new RectF();
         private final RectF copyButton = new RectF();
         private final RectF modeButton = new RectF();
+        private final RectF spreadButton = new RectF();
         private final RectF draggableSeal = new RectF();
         private final String[] currentCoins = {"·", "·", "·"};
         private final ZhouYiRepository zhouYi;
         private final LiuYaoKnowledgeRepository liuYaoKnowledge;
+        private final TarotDeck tarotDeck;
         private final ArrayList<HistoryHit> historyHits = new ArrayList<>();
         private final ArrayList<TarotHistoryHit> tarotHistoryHits = new ArrayList<>();
 
@@ -230,9 +232,14 @@ public class MainActivity extends Activity implements SensorEventListener {
         private float sealGrabY = 0f;
         private boolean sealDragging = false;
         private boolean sealReturning = false;
+        private float sealFrameAngle = 0f;
+        private float sealLastX = 0f;
+        private float sealLastY = 0f;
         private TarotDeck.Draw[] tarotDraws = new TarotDeck.Draw[0];
+        private TarotDeck.Spread tarotSpread;
         private int tarotRevealCount = 0;
         private String currentTarotHistoryId = "";
+        private boolean aiTarotMode = false;
         private boolean formalCastingActive = false;
         private boolean formalAwaitingManual = false;
         private long formalStartEpoch = 0L;
@@ -248,6 +255,9 @@ public class MainActivity extends Activity implements SensorEventListener {
         private static final String ANIM_CLASSIC = "classic";
         private static final String ANIM_PHYSICS = "physics";
         private static final String ANIM_ORBIT = "orbit";
+        private static final String TAROT_REVEAL_CASCADE = "cascade";
+        private static final String TAROT_REVEAL_GLOW = "glow";
+        private static final String TAROT_REVEAL_FAN = "fan";
         private static final String BOOT_CLASSIC = "classic";
         private static final String BOOT_A = "electronic";
         private static final String BOOT_B = "ancient";
@@ -266,6 +276,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 "六爻序列"
         };
         private String coinAnimationMode = ANIM_CLASSIC;
+        private String tarotRevealMode = TAROT_REVEAL_CASCADE;
         private String bootStyle = BOOT_CLASSIC;
         private boolean lineAnimating = false;
         private boolean physicsActive = false;
@@ -287,6 +298,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             this.vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
             zhouYi = new ZhouYiRepository(context);
             liuYaoKnowledge = new LiuYaoKnowledgeRepository(context);
+            tarotDeck = new TarotDeck(context);
             paint.setTypeface(mono);
             paint.setDither(true);
             setBackgroundColor(BG);
@@ -454,6 +466,9 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (!ANIM_PHYSICS.equals(coinAnimationMode) && !ANIM_ORBIT.equals(coinAnimationMode)) coinAnimationMode = ANIM_CLASSIC;
             divinationMode = pref.getString("divination_mode", MODE_LIUYAO);
             if (!MODE_TAROT.equals(divinationMode)) divinationMode = MODE_LIUYAO;
+            tarotRevealMode = pref.getString("tarot_reveal", TAROT_REVEAL_CASCADE);
+            if (!TAROT_REVEAL_GLOW.equals(tarotRevealMode) && !TAROT_REVEAL_FAN.equals(tarotRevealMode)) tarotRevealMode = TAROT_REVEAL_CASCADE;
+            tarotSpread = tarotDeck.spread(pref.getString("tarot_spread", "three"));
             bootStyle = pref.getString("boot_style", BOOT_CLASSIC);
             boolean validBoot = false;
             for (String style : BOOT_STYLES) if (style.equals(bootStyle)) { validBoot = true; break; }
@@ -470,6 +485,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                     .putBoolean("animation_enabled", animationEnabled)
                     .putBoolean("boot_progress", bootProgressEnabled)
                     .putString("coin_animation", coinAnimationMode)
+                    .putString("tarot_reveal", tarotRevealMode)
+                    .putString("tarot_spread", tarotSpread == null ? "three" : tarotSpread.id)
                     .putString("divination_mode", divinationMode)
                     .putString("boot_style", bootStyle)
                     .apply();
@@ -481,8 +498,9 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (state == State.BOARD) { state = State.OFFLINE; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
             if (state == State.HISTORY) { state = State.IDLE; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
             if (state == State.OFFLINE) { state = State.RESULT; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
-            if (state == State.AI) { state = State.OFFLINE; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
+            if (state == State.AI) { state = aiTarotMode ? State.TAROT_DETAIL : State.OFFLINE; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
             if (state == State.TAROT_DETAIL) { state = State.TAROT_RESULT; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
+            if (state == State.TAROT_TEXT) { state = State.TAROT_DETAIL; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
             if (state == State.TAROT_RESULT) { state = State.IDLE; postInvalidateOnAnimation(); return true; }
             if (state == State.TAROT_CASTING) {
                 handler.removeCallbacksAndMessages(null); state = State.IDLE; tarotRevealCount = 0; postInvalidateOnAnimation(); return true;
@@ -501,7 +519,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 haptic(HapticFeedbackConstants.CONFIRM);
                 pulse(24, 130);
                 if (MODE_TAROT.equals(divinationMode)) {
-                    Toast.makeText(getContext(), "摇动 · 三牌成阵", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "摇动 · " + tarotSpread.name, Toast.LENGTH_SHORT).show();
                     startTarotCasting();
                     return;
                 }
@@ -613,6 +631,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 case TAROT_CASTING: drawTarotCasting(c, contentW, contentH); break;
                 case TAROT_RESULT: drawTarotResult(c, contentW, contentH); break;
                 case TAROT_DETAIL: drawTarotDetail(c, contentW, contentH); break;
+                case TAROT_TEXT: drawTarotText(c, contentW, contentH); break;
             }
             c.restore();
         }
@@ -793,7 +812,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             text(c, "柳之卦", dp(20), dp(41), 26, FG, Paint.Align.LEFT, true);
             text(c, "RYU\'S GUA / " + appVersion(), dp(20), dp(61), 9, MUTED, Paint.Align.LEFT, false);
             modeButton.set(w - dp(92), dp(20), w - dp(20), dp(55));
-            button(c, modeButton, MODE_TAROT.equals(divinationMode) ? "塔罗" : "六爻", GOLD, true, 10);
+            text(c, (MODE_TAROT.equals(divinationMode) ? "塔罗" : "六爻") + "  ▾", modeButton.centerX(), modeButton.centerY() + dp(4), 10.5f, GOLD, Paint.Align.CENTER, true);
+            line(c, modeButton.left + dp(13), modeButton.bottom - dp(2), modeButton.right - dp(13), modeButton.bottom - dp(2), Color.rgb(84, 69, 38), .7f);
             line(c, dp(20), dp(75), w - dp(20), dp(75), GOLD, 1);
         }
 
@@ -815,9 +835,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             float sealCx = cx + sealOffsetX, sealCy = h * 0.47f + sealOffsetY;
             RectF seal = new RectF(sealCx - dp(43), sealCy - dp(43), sealCx + dp(43), sealCy + dp(43));
             draggableSeal.set(seal);
-            paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(dp(2)); paint.setColor(RED);
-            c.drawRect(seal, paint);
-            text(c, "卦", sealCx, sealCy + dp(19), 48, RED, Paint.Align.CENTER, true);
+            drawDraggableSeal(c, seal, "卦", false);
 
             String formalReason = formalBlockReason();
             boolean formalAvailable = formalReason.isEmpty();
@@ -832,6 +850,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         private void drawTarotIdle(Canvas c, float w, float h) {
             float cx = w / 2f;
+            if (tarotSpread == null) tarotSpread = tarotDeck.spread("three");
             float topLeft = dp(20), topRight = w - dp(20), gap = dp(8);
             float cell = (topRight - topLeft - gap) / 2f;
             experienceButton.set(topLeft, dp(88), topLeft + cell, dp(120));
@@ -841,43 +860,48 @@ public class MainActivity extends Activity implements SensorEventListener {
             button(c, historyButton, "历史", MUTED, false, 10);
 
             text(c, "静 观 一 念", cx, h * 0.29f, 24, FG, Paint.Align.CENTER, true);
-            text(c, "ONE QUESTION / THREE CARDS", cx, h * 0.29f + dp(27), 7.6f, MUTED, Paint.Align.CENTER, true);
-            text(c, "缘起 · 此刻 · 趋向", cx, h * 0.29f + dp(47), 10.5f, GOLD, Paint.Align.CENTER, false);
+            text(c, "ONE QUESTION / " + tarotSpread.size() + " CARD" + (tarotSpread.size() > 1 ? "S" : ""), cx, h * 0.29f + dp(27), 7.6f, MUTED, Paint.Align.CENTER, true);
+            text(c, tarotSpread.subtitle, cx, h * 0.29f + dp(47), 10.5f, GOLD, Paint.Align.CENTER, false);
 
             float sealCx = cx + sealOffsetX, sealCy = h * 0.47f + sealOffsetY;
             RectF seal = new RectF(sealCx - dp(43), sealCy - dp(43), sealCx + dp(43), sealCy + dp(43));
             draggableSeal.set(seal);
-            paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(dp(2)); paint.setColor(RED);
-            c.drawRect(seal, paint);
-            paint.setStrokeWidth(dp(.8f)); paint.setColor(GOLD);
-            c.drawRect(new RectF(seal.left + dp(8), seal.top + dp(8), seal.right - dp(8), seal.bottom - dp(8)), paint);
-            text(c, "牌", sealCx, sealCy + dp(18), 46, RED, Paint.Align.CENTER, true);
+            drawDraggableSeal(c, seal, "牌", true);
 
-            text(c, "三牌不定命 · 只照见此刻", cx, h - dp(145), 8.2f, MUTED, Paint.Align.CENTER, false);
+            text(c, "牌阵不定命 · 只照见此刻", cx, h - dp(203), 8.2f, MUTED, Paint.Align.CENTER, false);
+            spreadButton.set(dp(28), h - dp(192), w - dp(28), h - dp(146));
+            button(c, spreadButton, "牌阵 · " + tarotSpread.name + "  ▾", FG, false, 9.5f);
             primaryButton.set(dp(28), h - dp(122), w - dp(28), h - dp(64));
-            button(c, primaryButton, "一念既起 · 三牌成阵", GOLD, true, 13);
+            button(c, primaryButton, "一念既起 · " + tarotSpread.name, GOLD, true, 12.5f);
             text(c, shakeEnabled ? "KEY / SHAKE" : "KEY", cx, h - dp(41), 9, GOLD, Paint.Align.CENTER, true);
             text(c, "完整牌库 · 正逆同观", cx, h - dp(21), 8.2f, MUTED, Paint.Align.CENTER, false);
+        }
+
+        private void drawDraggableSeal(Canvas c, RectF seal, String mark, boolean tarot) {
+            c.save(); c.rotate(sealFrameAngle, seal.centerX(), seal.centerY());
+            paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(dp(2)); paint.setColor(RED); c.drawRect(seal, paint);
+            RectF middle = new RectF(seal.left + dp(6), seal.top + dp(6), seal.right - dp(6), seal.bottom - dp(6));
+            paint.setStrokeWidth(dp(.7f)); paint.setColor(tarot ? GOLD : Color.rgb(126, 57, 43)); c.drawRect(middle, paint);
+            if (sealDragging || sealReturning) {
+                RectF orbit = new RectF(seal.left - dp(8), seal.top - dp(8), seal.right + dp(8), seal.bottom + dp(8));
+                paint.setStrokeWidth(dp(.7f)); paint.setColor(Color.argb(145, 201, 168, 91));
+                c.drawArc(orbit, 18f, 58f, false, paint); c.drawArc(orbit, 198f, 58f, false, paint);
+            }
+            c.restore();
+            text(c, mark, seal.centerX(), seal.centerY() + dp(18), tarot ? 46 : 48, RED, Paint.Align.CENTER, true);
         }
 
         private void drawTarotCasting(Canvas c, float w, float h) {
             float cx = w / 2f;
             backButton.set(w - dp(78), dp(86), w - dp(20), dp(116));
             button(c, backButton, "返回", MUTED, false, 9);
-            text(c, "三牌成阵", cx, dp(112), 14, GOLD, Paint.Align.CENTER, true);
-            text(c, "缘起 · 此刻 · 趋向", cx, dp(133), 8.5f, MUTED, Paint.Align.CENTER, false);
-            String[] labels = {"缘起", "此刻", "趋向"};
-            float gap = dp(9), left = dp(20), cardW = (w - dp(40) - gap * 2f) / 3f;
-            float top = Math.max(dp(168), h * .27f);
-            float bottom = Math.max(top + dp(118), Math.min(h - dp(126), top + dp(178)));
-            for (int i = 0; i < 3; i++) {
-                RectF card = new RectF(left + i * (cardW + gap), top, left + i * (cardW + gap) + cardW, bottom);
-                text(c, labels[i], card.centerX(), top - dp(12), 9, i < tarotRevealCount ? GOLD : MUTED, Paint.Align.CENTER, true);
-                TarotDeck.Draw draw = tarotDraws.length == 3 ? tarotDraws[i] : null;
-                drawTarotCard(c, card, draw, i < tarotRevealCount);
-            }
-            text(c, tarotRevealCount >= 3 ? "牌阵已定" : "静候翻牌 · " + tarotRevealCount + "/3",
-                    cx, h - dp(79), 10, tarotRevealCount >= 3 ? GOLD : MUTED, Paint.Align.CENTER, true);
+            text(c, tarotSpread.name, cx, dp(112), 14, GOLD, Paint.Align.CENTER, true);
+            text(c, tarotSpread.subtitle, cx, dp(133), 8.5f, MUTED, Paint.Align.CENTER, false);
+            drawTarotSpreadCards(c, w, h, true);
+            int count = tarotSpread.size();
+            text(c, tarotRevealCount >= count ? "牌阵已定" : "静候翻牌 · " + tarotRevealCount + "/" + count,
+                    cx, h - dp(79), 10, tarotRevealCount >= count ? GOLD : MUTED, Paint.Align.CENTER, true);
+            if (TAROT_REVEAL_GLOW.equals(tarotRevealMode)) postInvalidateOnAnimation();
         }
 
         private void drawTarotResult(Canvas c, float w, float h) {
@@ -886,23 +910,56 @@ public class MainActivity extends Activity implements SensorEventListener {
             historyButton.set(w - dp(78), dp(86), w - dp(20), dp(116));
             button(c, settingsButton, "设置", MUTED, false, 9);
             button(c, historyButton, "历史", MUTED, false, 9);
-            text(c, "三牌之阵", dp(20), dp(111), 17, FG, Paint.Align.LEFT, true);
-            text(c, "TAROT / THREE-CARD SPREAD", dp(20), dp(129), 7.3f, MUTED, Paint.Align.LEFT, true);
-            String[] labels = {"缘起", "此刻", "趋向"};
-            float gap = dp(9), left = dp(20), cardW = (w - dp(40) - gap * 2f) / 3f;
-            float top = dp(170);
-            float bottom = Math.max(top + dp(118), Math.min(dp(352), h - dp(180)));
-            for (int i = 0; i < 3; i++) {
-                RectF card = new RectF(left + i * (cardW + gap), top, left + i * (cardW + gap) + cardW, bottom);
-                text(c, labels[i], card.centerX(), top - dp(12), 9, GOLD, Paint.Align.CENTER, true);
-                drawTarotCard(c, card, tarotDraws.length == 3 ? tarotDraws[i] : null, true);
-            }
-            line(c, dp(20), bottom + dp(25), w - dp(20), bottom + dp(25), GRID, 1);
-            text(c, "牌成 / RESULT", dp(22), bottom + dp(48), 7.5f, MUTED, Paint.Align.LEFT, true);
+            text(c, tarotSpread.name, dp(20), dp(111), 17, FG, Paint.Align.LEFT, true);
+            text(c, "TAROT / " + tarotSpread.nameEn, dp(20), dp(129), 7.3f, MUTED, Paint.Align.LEFT, true);
+            drawTarotSpreadCards(c, w, h, false);
+            text(c, "牌成 / RESULT", dp(22), h - dp(130), 7.5f, MUTED, Paint.Align.LEFT, true);
             leftButton.set(dp(20), h - dp(112), w - dp(20), h - dp(62));
             primaryButton.set(dp(20), h - dp(52), w - dp(20), h - dp(8));
             button(c, leftButton, "查看解牌", GOLD, true, 11);
             button(c, primaryButton, "牌意已明 · 再占一局", MUTED, false, 9);
+        }
+
+        private void drawTarotSpreadCards(Canvas c, float w, float h, boolean casting) {
+            int count = tarotSpread == null ? 0 : tarotSpread.size();
+            float areaTop = dp(164), areaBottom = casting ? h - dp(116) : h - dp(145);
+            for (int i = 0; i < count; i++) {
+                RectF card = tarotCardRect(w, areaTop, areaBottom, i, count);
+                int color = i < tarotRevealCount || !casting ? GOLD : MUTED;
+                text(c, tarotSpread.positions[i], card.centerX(), card.top - dp(8), count == 4 ? 7.5f : 9, color, Paint.Align.CENTER, true);
+                TarotDeck.Draw draw = tarotDraws.length == count ? tarotDraws[i] : null;
+                boolean revealed = !casting || i < tarotRevealCount;
+                c.save();
+                if (casting && TAROT_REVEAL_FAN.equals(tarotRevealMode)) {
+                    float remaining = Math.max(0f, count - tarotRevealCount);
+                    c.rotate((i - (count - 1) / 2f) * 3.2f * Math.min(1f, remaining / Math.max(1f, count)), card.centerX(), card.centerY());
+                }
+                if (casting && revealed && TAROT_REVEAL_GLOW.equals(tarotRevealMode)) {
+                    float pulse = .5f + .5f * (float)Math.sin(SystemClock.uptimeMillis() / 170f + i);
+                    paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(dp(1.2f)); paint.setColor(Color.argb((int)(55 + 90 * pulse), 201, 168, 91));
+                    RectF glow = new RectF(card.left - dp(5 + pulse * 3), card.top - dp(5 + pulse * 3), card.right + dp(5 + pulse * 3), card.bottom + dp(5 + pulse * 3));
+                    c.drawRoundRect(glow, dp(8), dp(8), paint);
+                }
+                drawTarotCard(c, card, draw, revealed);
+                c.restore();
+            }
+        }
+
+        private RectF tarotCardRect(float w, float top, float bottom, int index, int count) {
+            if (count == 1) {
+                float cardW = Math.min(dp(138), w - dp(96));
+                float cardH = Math.min(dp(210), bottom - top - dp(8));
+                return new RectF(w / 2f - cardW / 2f, top + dp(13), w / 2f + cardW / 2f, top + dp(13) + cardH);
+            }
+            if (count == 4) {
+                float gapX=dp(18), gapY=dp(24), left=dp(42), usableW=w-dp(84), cardW=(usableW-gapX)/2f;
+                float cardH=Math.min(dp(116), (bottom-top-gapY-dp(14))/2f); int row=index/2,col=index%2;
+                float x=left+col*(cardW+gapX), y=top+dp(10)+row*(cardH+gapY);
+                return new RectF(x,y,x+cardW,y+cardH);
+            }
+            float gap=dp(9),left=dp(20),cardW=(w-dp(40)-gap*(count-1))/count;
+            float cardH=Math.min(dp(182),bottom-top-dp(8));float x=left+index*(cardW+gap);
+            return new RectF(x,top+dp(12),x+cardW,top+dp(12)+cardH);
         }
 
         private void drawTarotCard(Canvas c, RectF card, TarotDeck.Draw draw, boolean revealed) {
@@ -917,58 +974,95 @@ public class MainActivity extends Activity implements SensorEventListener {
                 line(c, inner.right - dp(9), inner.top + dp(18), inner.left + dp(9), inner.bottom - dp(18), GRID, 1);
                 return;
             }
-            String sigil = "大阿卡那".equals(draw.card.family) ? "∞" : draw.card.family.substring(0, 1);
+            String sigil = draw.card.glyph;
             c.save();
             if (draw.reversed) c.rotate(180f, card.centerX(), card.centerY() - dp(7));
-            text(c, sigil, card.centerX(), card.centerY() + dp(5), 26, draw.reversed ? RED : GOLD, Paint.Align.CENTER, true);
+            float artCy = card.centerY() - dp(8);
+            paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(dp(.7f)); paint.setColor(Color.rgb(74, 60, 34));
+            float artR = Math.min(card.width(), card.height()) * .25f;
+            c.drawCircle(card.centerX(), artCy, artR, paint);
+            c.drawLine(card.centerX(), artCy-artR, card.centerX()+artR, artCy, paint);
+            c.drawLine(card.centerX()+artR, artCy, card.centerX(), artCy+artR, paint);
+            c.drawLine(card.centerX(), artCy+artR, card.centerX()-artR, artCy, paint);
+            c.drawLine(card.centerX()-artR, artCy, card.centerX(), artCy-artR, paint);
+            text(c, sigil, card.centerX(), artCy + dp(7), Math.min(26, Math.max(16, card.width()/dp(4.2f))), draw.reversed ? RED : GOLD, Paint.Align.CENTER, true);
             c.restore();
             String name = draw.card.name;
             if (name.length() > 8) name = name.substring(0, 8);
-            text(c, name, card.centerX(), card.bottom - dp(31), 7.2f, FG, Paint.Align.CENTER, true);
-            text(c, draw.orientation(), card.centerX(), card.bottom - dp(14), 7.2f, draw.reversed ? RED : MUTED, Paint.Align.CENTER, true);
+            text(c, name, card.centerX(), card.bottom - dp(30), card.width() < dp(100) ? 6.4f : 7.4f, FG, Paint.Align.CENTER, true);
+            text(c, draw.orientation() + " · " + (draw.card.suit.isEmpty() ? "大牌" : draw.card.suit), card.centerX(), card.bottom - dp(14), card.width() < dp(100) ? 5.8f : 6.8f, draw.reversed ? RED : MUTED, Paint.Align.CENTER, true);
         }
 
         private void drawTarotDetail(Canvas c, float w, float h) {
             backButton.set(w - dp(78), dp(86), w - dp(20), dp(116));
             button(c, backButton, "返回", MUTED, false, 9);
             text(c, "离线解牌", dp(20), dp(108), 15, GOLD, Paint.Align.LEFT, true);
-            text(c, "OFFLINE / THREE-CARD READING", dp(20), dp(124), 7.2f, MUTED, Paint.Align.LEFT, true);
-            c.save(); c.clipRect(0, dp(136), w, h - dp(80));
-            float y = dp(160) - scrollOffset;
-            y = wrapped(c, TarotDeck.reading(tarotDraws), dp(22), y, w - dp(44), 11.2f, FG, dp(20), false) + dp(24);
+            text(c, "OFFLINE / " + tarotSpread.nameEn, dp(20), dp(124), 7.2f, MUTED, Paint.Align.LEFT, true);
+            leftButton.set(dp(20), dp(136), w / 2f - dp(5), dp(172));
+            rightButton.set(w / 2f + dp(5), dp(136), w - dp(20), dp(172));
+            button(c, leftButton, "牌义", GOLD, false, 9.5f);
+            boolean hasSavedAi = aiText != null && !aiText.trim().isEmpty()
+                    && currentTarotHistoryId != null && !currentTarotHistoryId.isEmpty();
+            button(c, rightButton, hasSavedAi ? "查看 AI 解牌" : "AI 解牌", GOLD, true, 9.5f);
+            c.save(); c.clipRect(0, dp(184), w, h - dp(80));
+            float y = dp(208) - scrollOffset;
+            y = wrapped(c, tarotDeck.reading(tarotDraws, tarotSpread), dp(22), y, w - dp(44), 11.2f, FG, dp(20), false) + dp(24);
             maxScroll = Math.max(0, y + scrollOffset - (h - dp(80)) + dp(20)); c.restore();
             copyButton.set(dp(20), h - dp(67), w - dp(20), h - dp(15));
             button(c, copyButton, "复制离线解牌", GOLD, true, 10);
         }
 
+        private void drawTarotText(Canvas c, float w, float h) {
+            backButton.set(w - dp(78), dp(86), w - dp(20), dp(116)); button(c, backButton, "返回", MUTED, false, 9);
+            text(c, "牌义", dp(20), dp(108), 15, GOLD, Paint.Align.LEFT, true);
+            text(c, "CARD MEANINGS / LOCAL", dp(20), dp(124), 7.2f, MUTED, Paint.Align.LEFT, true);
+            c.save(); c.clipRect(0, dp(136), w, h - dp(80)); float y=dp(160)-scrollOffset;
+            y=wrapped(c,tarotDeck.meaningText(tarotDraws,tarotSpread),dp(22),y,w-dp(44),11.2f,FG,dp(20),false)+dp(24);
+            maxScroll=Math.max(0,y+scrollOffset-(h-dp(80))+dp(20));c.restore();
+            copyButton.set(dp(20),h-dp(67),w-dp(20),h-dp(15));button(c,copyButton,"复制本局牌义",GOLD,true,10);
+        }
+
         private void startTarotCasting() {
             handler.removeCallbacksAndMessages(null);
-            tarotDraws = TarotDeck.drawThree(); tarotRevealCount = 0; currentTarotHistoryId = "";
+            if (tarotSpread == null) tarotSpread = tarotDeck.spread("three");
+            tarotDraws = tarotDeck.draw(tarotSpread); tarotRevealCount = 0; currentTarotHistoryId = "";
+            aiText = ""; aiReasoning = ""; aiError = ""; aiModel = ""; aiTarotMode = true;
             state = State.TAROT_CASTING; postInvalidateOnAnimation();
-            for (int i = 0; i < 3; i++) {
-                final int count = i + 1;
+            int count = tarotDraws.length;
+            if(!animationEnabled){
+                tarotRevealCount=count;handler.postDelayed(()->{if(state!=State.TAROT_CASTING)return;state=State.TAROT_RESULT;TarotHistoryStore.Entry entry=TarotHistoryStore.add(getContext(),tarotSpread.id,tarotDraws);currentTarotHistoryId=entry.id;if(soundEnabled)audio.complete();ritualPulse();postInvalidateOnAnimation();},220L);return;
+            }
+            long gap = TAROT_REVEAL_FAN.equals(tarotRevealMode) ? 390L : (TAROT_REVEAL_GLOW.equals(tarotRevealMode) ? 610L : 520L);
+            for (int i = 0; i < count; i++) {
+                final int reveal = i + 1;
                 handler.postDelayed(() -> {
                     if (state != State.TAROT_CASTING) return;
-                    tarotRevealCount = count;
+                    tarotRevealCount = reveal;
                     if (soundEnabled) audio.coin();
-                    pulse(18 + count * 3L, 75 + count * 20);
+                    pulse(18 + reveal * 3L, 75 + reveal * 20);
                     postInvalidateOnAnimation();
-                }, 520L + i * 560L);
+                }, 420L + i * gap);
             }
             handler.postDelayed(() -> {
                 if (state != State.TAROT_CASTING) return;
                 state = State.TAROT_RESULT;
-                TarotHistoryStore.Entry entry = TarotHistoryStore.add(getContext(), tarotDraws);
+                TarotHistoryStore.Entry entry = TarotHistoryStore.add(getContext(), tarotSpread.id, tarotDraws);
                 currentTarotHistoryId = entry.id;
                 if (soundEnabled) audio.complete(); ritualPulse(); postInvalidateOnAnimation();
-            }, 2250L);
+            }, 880L + (count - 1L) * gap);
         }
 
         private void copyTarotReading() {
             ClipboardManager cb = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-            cb.setPrimaryClip(ClipData.newPlainText("柳之卦塔罗解牌", TarotDeck.reading(tarotDraws)));
+            cb.setPrimaryClip(ClipData.newPlainText("柳之卦塔罗解牌", tarotDeck.reading(tarotDraws, tarotSpread)));
             haptic(HapticFeedbackConstants.CLOCK_TICK);
             Toast.makeText(getContext(), "离线解牌已复制", Toast.LENGTH_SHORT).show();
+        }
+
+        private void copyTarotMeaning() {
+            ClipboardManager cb=(ClipboardManager)getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+            cb.setPrimaryClip(ClipData.newPlainText("柳之卦塔罗牌义",tarotDeck.meaningText(tarotDraws,tarotSpread)));
+            haptic(HapticFeedbackConstants.CLOCK_TICK);Toast.makeText(getContext(),"本局牌义已复制",Toast.LENGTH_SHORT).show();
         }
 
         private void drawCasting(Canvas c, float w, float h) {
@@ -983,6 +1077,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                 text(c, String.format(Locale.CHINA, "第 %d / 6 爻", shown), cx, dp(112), 13, GOLD, Paint.Align.CENTER, true);
             }
             float coinY = formalCastingActive ? dp(183) : dp(177);
+            if (ANIM_CLASSIC.equals(coinAnimationMode) && lineAnimating) drawClassicFloatField(c, cx, coinY);
+            if (ANIM_ORBIT.equals(coinAnimationMode) && orbitActive) drawOrbitField(c, cx, coinY);
             if (!((ANIM_PHYSICS.equals(coinAnimationMode) && physicsActive) || orbitActive)) {
                 for (int i = 0; i < 3; i++) drawCoin(c, cx + dp((i - 1) * 72), coinY, currentCoins[i], i);
             }
@@ -1046,6 +1142,19 @@ public class MainActivity extends Activity implements SensorEventListener {
             c.drawRect(square, paint);
             text(c, face, x, cy + dp(5), 10, FG, Paint.Align.CENTER, true);
             c.restore();
+        }
+
+        private void drawClassicFloatField(Canvas c,float cx,float cy){
+            float wave=.5f+.5f*(float)Math.sin(coinPhase*.5f);paint.setStyle(Paint.Style.STROKE);paint.setStrokeCap(Paint.Cap.ROUND);
+            for(int ring=0;ring<3;ring++){float r=dp(42+ring*22)+dp(8)*wave;paint.setStrokeWidth(dp(.7f));paint.setColor(Color.argb(35+ring*18,201,168,91));RectF oval=new RectF(cx-r,cy-dp(26+ring*7),cx+r,cy+dp(26+ring*7));c.drawArc(oval,-160f,140f,false,paint);c.drawArc(oval,20f,140f,false,paint);}
+            for(int i=0;i<3;i++){float x=cx+dp((i-1)*72);float lift=(float)Math.abs(Math.sin(coinPhase+i*.22f))*dp(4);paint.setStyle(Paint.Style.FILL);paint.setColor(Color.argb(58,201,168,91));c.drawCircle(x,cy+dp(31)-lift,dp(3+wave*2),paint);line(c,x-dp(18),cy+dp(36),x+dp(18),cy+dp(36),Color.argb(70,201,168,91),.7f);}
+        }
+
+        private void drawOrbitField(Canvas c,float cx,float cy){
+            float t=Math.min(1f,(SystemClock.uptimeMillis()-orbitStartedAt)/1680f);float settle=t*t*(3f-2f*t);float radius=dp(105)*(1f-settle);
+            paint.setStyle(Paint.Style.STROKE);paint.setStrokeCap(Paint.Cap.ROUND);
+            for(int ring=0;ring<3;ring++){float grow=dp(ring*12);RectF orbit=new RectF(cx-radius-grow,cy-(radius+grow)*.54f,cx+radius+grow,cy+(radius+grow)*.54f);paint.setStrokeWidth(dp(ring==0?1.2f:.6f));paint.setColor(Color.argb(125-ring*30,201,168,91));c.drawOval(orbit,paint);}
+            for(int i=0;i<3;i++)for(int tail=1;tail<=7;tail++){float phase=(float)(i*Math.PI*2/3+t*Math.PI*6.4-tail*.12);float rr=radius+dp(tail*1.3f);float x=cx+(float)Math.cos(phase)*rr,y=cy+(float)Math.sin(phase)*rr*.54f;paint.setStyle(Paint.Style.FILL);paint.setColor(Color.argb(Math.max(10,92-tail*11),201,168,91));c.drawCircle(x,y,dp(Math.max(1f,3.6f-tail*.35f)),paint);}
         }
 
         private void drawPhysicsCoins(Canvas c) {
@@ -1198,6 +1307,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         private void showKnowledgeIndexDialog() {
+            if (MODE_TAROT.equals(divinationMode)) { showTarotKnowledgeIndexDialog(); return; }
             List<LiuYaoKnowledgeRepository.Topic> topics = liuYaoKnowledge.all();
             String[] items = new String[topics.size()];
             for (int i=0;i<topics.size();i++) items[i] = topics.get(i).displayTitle();
@@ -1207,6 +1317,20 @@ public class MainActivity extends Activity implements SensorEventListener {
                     .setNegativeButton("关闭", null).create();
             dialog.setOnShowListener(d -> styleSettingsDialog(dialog));
             dialog.show();
+        }
+
+        private void showTarotKnowledgeIndexDialog(){
+            List<TarotDeck.Topic> topics=tarotDeck.topics();String[] items=new String[topics.size()];for(int i=0;i<topics.size();i++)items[i]=topics.get(i).title+" · "+topics.get(i).summary;
+            AlertDialog dialog=new AlertDialog.Builder(getContext()).setTitle("塔罗索引").setItems(items,(d,which)->showTarotKnowledgeTopic(which)).setNegativeButton("关闭",null).create();
+            dialog.setOnShowListener(d->styleSettingsDialog(dialog));dialog.show();
+        }
+
+        private void showTarotKnowledgeTopic(int index){
+            List<TarotDeck.Topic> topics=tarotDeck.topics();if(index<0||index>=topics.size())return;TarotDeck.Topic topic=topics.get(index);
+            TextView text=new TextView(getContext());text.setText(topic.summary+"\n\n"+topic.body+"\n\n来源：柳之卦独立编写的本地塔罗参考。不同牌系与读法可能存在差异。");
+            text.setTextColor(FG);text.setTextSize(12);text.setLineSpacing(0,1.28f);int pad=(int)dp(16);text.setPadding(pad,pad,pad,pad);text.setBackgroundColor(BG);
+            ScrollView scroll=new ScrollView(getContext());scroll.addView(text);AlertDialog dialog=new AlertDialog.Builder(getContext()).setTitle(topic.title).setView(scroll).setPositiveButton("知悉",null).create();
+            dialog.setOnShowListener(d->styleSettingsDialog(dialog));dialog.show();
         }
 
         private void showKnowledgeTopic(int index) {
@@ -1334,29 +1458,31 @@ public class MainActivity extends Activity implements SensorEventListener {
             }
             SimpleDateFormat fmt = new SimpleDateFormat("MM-dd HH:mm:ss", Locale.CHINA);
             for (TarotHistoryStore.Entry entry : entries) {
-                TarotDeck.Draw[] draws = entry.draws();
-                RectF card = new RectF(dp(20), y, w - dp(20), y + dp(116)); panel(c, card);
-                text(c, fmt.format(new Date(entry.timeMillis)) + " · 三牌之阵", card.left + dp(12), card.top + dp(18), 8.2f, MUTED, Paint.Align.LEFT, false);
-                text(c, draws[0].card.name + " / " + draws[0].orientation(), card.left + dp(12), card.top + dp(43), 9.1f, FG, Paint.Align.LEFT, true);
-                text(c, draws[1].card.name + " / " + draws[1].orientation(), card.left + dp(12), card.top + dp(64), 9.1f, FG, Paint.Align.LEFT, true);
-                text(c, draws[2].card.name + " / " + draws[2].orientation(), card.left + dp(12), card.top + dp(85), 9.1f, FG, Paint.Align.LEFT, true);
+                TarotDeck.Draw[] draws = entry.draws(tarotDeck); TarotDeck.Spread spread=tarotDeck.spread(entry.spreadId);
+                RectF card = new RectF(dp(20), y, w - dp(20), y + dp(126)); panel(c, card);
+                text(c, fmt.format(new Date(entry.timeMillis)) + " · " + spread.name, card.left + dp(12), card.top + dp(18), 8.2f, MUTED, Paint.Align.LEFT, false);
+                int visible=Math.min(3,draws.length);
+                for(int j=0;j<visible;j++) text(c,spread.positions[j]+" · "+draws[j].card.name+" / "+draws[j].orientation(),card.left+dp(12),card.top+dp(43+j*21),8.6f,FG,Paint.Align.LEFT,true);
+                if(draws.length>3) text(c,"另有 "+(draws.length-3)+" 张 · 点击查看",card.left+dp(12),card.top+dp(106),8.1f,MUTED,Paint.Align.LEFT,false);
+                if(entry.hasAi()) text(c,"AI 已保存",card.right-dp(14),card.top+dp(54),7.5f,GOLD,Paint.Align.RIGHT,true);
                 if (entry.hasNote()) {
                     String note = entry.note.replace('\n', ' ').trim(); if (note.length() > 18) note = note.substring(0, 18) + "…";
-                    text(c, "备注：" + note, card.left + dp(12), card.top + dp(105), 8.1f, MUTED, Paint.Align.LEFT, false);
+                    text(c, "备注：" + note, card.left + dp(12), card.bottom-dp(10), 8.1f, MUTED, Paint.Align.LEFT, false);
                 }
                 RectF pinRect = new RectF(card.right - dp(119), card.top + dp(8), card.right - dp(68), card.top + dp(34));
                 RectF noteRect = new RectF(card.right - dp(59), card.top + dp(8), card.right - dp(8), card.top + dp(34));
                 button(c, pinRect, entry.pinned ? "已固定" : "固定", entry.pinned ? GOLD : MUTED, false, 7.5f);
                 button(c, noteRect, "备注", MUTED, false, 7.5f);
                 tarotHistoryHits.add(new TarotHistoryHit(new RectF(card), pinRect, noteRect, entry));
-                y += dp(128);
+                y += dp(138);
             }
             maxScroll = Math.max(0, y + scrollOffset - h + dp(20)); c.restore();
         }
 
         private void loadTarotHistoryEntry(TarotHistoryStore.Entry entry) {
             if (entry == null) return;
-            tarotDraws = entry.draws(); currentTarotHistoryId = entry.id; tarotRevealCount = 3;
+            tarotSpread=tarotDeck.spread(entry.spreadId);tarotDraws=entry.draws(tarotDeck);currentTarotHistoryId=entry.id;tarotRevealCount=tarotDraws.length;
+            aiText=entry.aiText;aiReasoning=entry.aiReasoning;aiReasoningSummaryOnly=entry.aiReasoningSummaryOnly;aiReasoningExpanded=false;aiModel=entry.aiModel;aiError="";aiLoading=false;aiTarotMode=true;
             divinationMode = MODE_TAROT; state = State.TAROT_RESULT; scrollOffset = 0;
             haptic(HapticFeedbackConstants.CLOCK_TICK); postInvalidateOnAnimation();
         }
@@ -1458,14 +1584,14 @@ public class MainActivity extends Activity implements SensorEventListener {
             clearButton.set(w - dp(148), dp(86), w - dp(88), dp(116));
             button(c, backButton, "返回", MUTED, false, 9);
             button(c, clearButton, "设置", GOLD, false, 9);
-            text(c, "AI 解卦", dp(20), dp(108), 15, GOLD, Paint.Align.LEFT, true);
+            text(c, aiTarotMode ? "AI 解牌" : "AI 解卦", dp(20), dp(108), 15, GOLD, Paint.Align.LEFT, true);
 
             c.save();
             c.clipRect(0, dp(126), w, h - dp(82));
             float y = dp(151) - scrollOffset;
             String statusTitle;
             if (aiLoading) {
-                if (!aiText.isEmpty()) statusTitle = "AI 正在解卦 · 流式输出";
+                if (!aiText.isEmpty()) statusTitle = aiTarotMode ? "AI 正在解牌 · 流式输出" : "AI 正在解卦 · 流式输出";
                 else if (!aiReasoning.isEmpty()) statusTitle = "AI 正在思考…";
                 else statusTitle = "正在连接 AI……";
                 text(c, statusTitle, dp(22), y, 13, GOLD, Paint.Align.LEFT, true);
@@ -1495,7 +1621,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             } else {
                 y = wrapped(c, aiText.isEmpty() ? "暂无解读" : aiText, dp(22), y,
                         w - dp(44), 11.5f, FG, dp(21), false) + dp(24);
-                y = wrapped(c, "AI 解读与卦象均只作传统文化与娱乐参考，不构成医疗、法律、投资等专业建议。", dp(22), y,
+                y = wrapped(c, aiTarotMode ? "AI 解牌与牌阵只作自我观察与娱乐参考，不构成医疗、法律、投资等专业建议。" : "AI 解读与卦象均只作传统文化与娱乐参考，不构成医疗、法律、投资等专业建议。", dp(22), y,
                         w - dp(44), 9.2f, MUTED, dp(17), false) + dp(24);
             }
             maxScroll = Math.max(0, y + scrollOffset - (h - dp(82)) + dp(20));
@@ -1504,7 +1630,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             auxLeftButton.set(dp(20), h - dp(69), w / 2f - dp(5), h - dp(15));
             auxRightButton.set(w / 2f + dp(5), h - dp(69), w - dp(20), h - dp(15));
             button(c, auxLeftButton, "复制解读", FG, false, 10.5f);
-            button(c, auxRightButton, aiLoading ? "请求中…" : "重新解卦", GOLD, true, 10.5f);
+            button(c, auxRightButton, aiLoading ? "请求中…" : (aiTarotMode ? "重新解牌" : "重新解卦"), GOLD, true, 10.5f);
         }
 
         private float drawAiReasoning(Canvas c, float w, float y) {
@@ -1585,10 +1711,12 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (e.getAction() == MotionEvent.ACTION_DOWN && draggableSeal.contains(x, y)) {
                 sealDragging = true; sealReturning = false;
                 sealGrabX = x - draggableSeal.centerX(); sealGrabY = y - draggableSeal.centerY();
+                sealLastX=x;sealLastY=y;
                 haptic(HapticFeedbackConstants.CLOCK_TICK); return true;
             }
             if (!sealDragging) return false;
             if (e.getAction() == MotionEvent.ACTION_MOVE) {
+                float dx=x-sealLastX,dy=y-sealLastY;sealFrameAngle=(sealFrameAngle+(float)Math.hypot(dx,dy)*.32f)%360f;sealLastX=x;sealLastY=y;
                 float contentW = Math.max(dp(240), getWidth() - safeInsetLeft - safeInsetRight);
                 float contentH = Math.max(dp(360), getHeight() - safeInsetTop - safeInsetBottom);
                 sealOffsetX = clamp(x - sealGrabX - contentW / 2f, -contentW / 2f + dp(58), contentW / 2f - dp(58));
@@ -1604,6 +1732,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         private void startSealReturn() {
             final float fromX = sealOffsetX, fromY = sealOffsetY;
             if (Math.abs(fromX) < .5f && Math.abs(fromY) < .5f) { sealOffsetX = sealOffsetY = 0f; return; }
+            final float fromAngle=sealFrameAngle;final float turn=(fromX+fromY)>=0?72f:-72f;
             final long started = SystemClock.uptimeMillis(); sealReturning = true;
             Runnable returner = new Runnable() {
                 @Override public void run() {
@@ -1612,9 +1741,10 @@ public class MainActivity extends Activity implements SensorEventListener {
                     float left = 1f - t;
                     float remaining = left * left * left;
                     sealOffsetX = fromX * remaining; sealOffsetY = fromY * remaining;
+                    sealFrameAngle=fromAngle+turn*(1f-remaining);
                     postInvalidateOnAnimation();
                     if (t < 1f) postOnAnimation(this);
-                    else { sealOffsetX = sealOffsetY = 0f; sealReturning = false; postInvalidateOnAnimation(); }
+                    else { sealOffsetX = sealOffsetY = 0f; sealFrameAngle=(fromAngle+turn)%360f;sealReturning = false; postInvalidateOnAnimation(); }
                 }
             };
             postOnAnimation(returner);
@@ -1626,7 +1756,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (e.getAction() == MotionEvent.ACTION_UP && !dragging && state != State.BOOT && modeButton.contains(x, y)) {
                 showDivinationModeDialog(); return true;
             }
-            if ((state == State.DETAIL || state == State.BOARD || state == State.HISTORY || state == State.OFFLINE || state == State.AI || state == State.TAROT_DETAIL)) {
+            if ((state == State.DETAIL || state == State.BOARD || state == State.HISTORY || state == State.OFFLINE || state == State.AI || state == State.TAROT_DETAIL || state == State.TAROT_TEXT)) {
                 if (e.getAction() == MotionEvent.ACTION_DOWN) {
                     downY = lastY = y; dragging = false; return true;
                 }
@@ -1643,8 +1773,9 @@ public class MainActivity extends Activity implements SensorEventListener {
                     if (!dragging && backButton.contains(x, y)) {
                         if (state == State.DETAIL || state == State.BOARD) state = State.OFFLINE;
                         else if (state == State.OFFLINE) state = State.RESULT;
-                        else if (state == State.AI) state = State.OFFLINE;
+                        else if (state == State.AI) state = aiTarotMode ? State.TAROT_DETAIL : State.OFFLINE;
                         else if (state == State.TAROT_DETAIL) state = State.TAROT_RESULT;
+                        else if (state == State.TAROT_TEXT) state = State.TAROT_DETAIL;
                         else state = State.IDLE;
                         scrollOffset = 0; postInvalidateOnAnimation(); return true;
                     }
@@ -1681,6 +1812,15 @@ public class MainActivity extends Activity implements SensorEventListener {
                     }
                     if (!dragging && state == State.TAROT_DETAIL && copyButton.contains(x, y)) {
                         copyTarotReading(); return true;
+                    }
+                    if (!dragging && state == State.TAROT_DETAIL && leftButton.contains(x, y)) {
+                        state=State.TAROT_TEXT;scrollOffset=0;haptic(HapticFeedbackConstants.CONFIRM);postInvalidateOnAnimation();return true;
+                    }
+                    if (!dragging && state == State.TAROT_DETAIL && rightButton.contains(x, y)) {
+                        startTarotAiOrConfigure();return true;
+                    }
+                    if (!dragging && state == State.TAROT_TEXT && copyButton.contains(x, y)) {
+                        copyTarotMeaning();return true;
                     }
                     if (!dragging && state == State.HISTORY && clearButton.contains(x, y)) {
                         if (MODE_TAROT.equals(divinationMode)) TarotHistoryStore.clearUnpinned(getContext());
@@ -1725,6 +1865,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (state == State.IDLE) {
                 if (MODE_TAROT.equals(divinationMode)) {
                     if (primaryButton.contains(x, y)) { haptic(HapticFeedbackConstants.CONFIRM); pulse(22, 120); startTarotCasting(); return true; }
+                    if (spreadButton.contains(x, y)) { showTarotSpreadDialog(); return true; }
                     if (experienceButton.contains(x, y)) { showSettingsDialog(false); return true; }
                     if (historyButton.contains(x, y)) { state = State.HISTORY; scrollOffset = 0; postInvalidateOnAnimation(); return true; }
                     return true;
@@ -1961,7 +2102,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             Runnable flip = new Runnable() {
                 @Override public void run() {
                     if (state != State.CASTING || !lineAnimating) return;
-                    float t = Math.min(1f, (SystemClock.uptimeMillis() - started) / 1080f);
+                    float t = Math.min(1f, (SystemClock.uptimeMillis() - started) / 1450f);
                     coinPhase = t * (float) (Math.PI * 8.0);
                     int bucket = Math.min(11, (int) (t * 12f));
                     if (bucket != lastBucket[0]) {
@@ -2033,14 +2174,14 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         private void stepOrbit() {
             if (!orbitActive || state != State.CASTING) return;
-            float t = Math.min(1f, (SystemClock.uptimeMillis() - orbitStartedAt) / 1320f);
+            float t = Math.min(1f, (SystemClock.uptimeMillis() - orbitStartedAt) / 1680f);
             float settle = t * t * (3f - 2f * t);
-            float radius = dp(94) * (1f - settle);
+            float radius = dp(105) * (1f - settle);
             float cx = (getWidth() - safeInsetLeft - safeInsetRight) / 2f;
             float cy = dp(177);
             for (int i = 0; i < physicsCoins.length; i++) {
                 CoinBody b = physicsCoins[i];
-                float phase = (float) (i * Math.PI * 2.0 / 3.0 + t * Math.PI * 4.4);
+                float phase = (float) (i * Math.PI * 2.0 / 3.0 + t * Math.PI * 6.4);
                 float orbitX = cx + (float) Math.cos(phase) * radius;
                 float orbitY = cy + (float) Math.sin(phase) * radius * .54f;
                 b.x = orbitX * (1f - settle) + b.targetX * settle;
@@ -2203,6 +2344,13 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         private String aiPrompt() {
+            if (aiTarotMode) {
+                return "【柳之卦 · 塔罗】\n" + tarotDeck.aiFacts(tarotDraws, tarotSpread)
+                        + "\n【本机离线合参】\n" + tarotDeck.reading(tarotDraws, tarotSpread)
+                        + "\n\n请只依据上述已经抽定的牌、正逆位、牌位与本地牌义生成解读，不要重新抽牌、替换牌阵或声称确定未来。"
+                        + "按“整体主题 / 逐位关系 / 可执行建议”三部分输出；指出牌与牌之间的呼应或张力，避免把逆位一律解释为坏结果。"
+                        + "全文控制在350至550个中文字符，最多不超过650个中文字符。最终回答不要包含思考过程、分析草稿、reasoning、thinking 或 <think> 标签。";
+            }
             LiuYaoBoard.Board board = currentLiuYaoBoard();
             return resultText()
                     + "\n\n" + board.toPlainText()
@@ -2229,6 +2377,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         private void startAiOrConfigure() {
+            aiTarotMode = false;
             if (currentHistoryId != null && !currentHistoryId.isEmpty()) {
                 HistoryStore.Entry saved = HistoryStore.find(getContext(), currentHistoryId);
                 if (saved != null && saved.hasAi()) {
@@ -2243,6 +2392,18 @@ public class MainActivity extends Activity implements SensorEventListener {
                     scrollOffset = 0;
                     postInvalidateOnAnimation();
                     return;
+                }
+            }
+            rerunAiReading();
+        }
+
+        private void startTarotAiOrConfigure() {
+            aiTarotMode = true;
+            if (currentTarotHistoryId != null && !currentTarotHistoryId.isEmpty()) {
+                TarotHistoryStore.Entry saved = TarotHistoryStore.find(getContext(), currentTarotHistoryId);
+                if (saved != null && saved.hasAi()) {
+                    aiText=saved.aiText;aiReasoning=saved.aiReasoning;aiReasoningSummaryOnly=saved.aiReasoningSummaryOnly;
+                    aiReasoningExpanded=false;aiModel=saved.aiModel;aiError="";aiLoading=false;state=State.AI;scrollOffset=0;postInvalidateOnAnimation();return;
                 }
             }
             rerunAiReading();
@@ -2301,7 +2462,9 @@ public class MainActivity extends Activity implements SensorEventListener {
                         aiText = text;
                         synchronized (streamedReasoning) { aiReasoning = streamedReasoning.toString(); }
                         aiError = "";
-                        if (currentHistoryId != null && !currentHistoryId.isEmpty()) {
+                        if (aiTarotMode && currentTarotHistoryId != null && !currentTarotHistoryId.isEmpty()) {
+                            TarotHistoryStore.updateAi(getContext(), currentTarotHistoryId, aiText, aiReasoning, aiReasoningSummaryOnly, aiModel);
+                        } else if (!aiTarotMode && currentHistoryId != null && !currentHistoryId.isEmpty()) {
                             HistoryStore.updateAi(getContext(), currentHistoryId, aiText, aiReasoning, aiReasoningSummaryOnly, aiModel);
                         }
                         haptic(HapticFeedbackConstants.CONFIRM);
@@ -2333,7 +2496,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 return;
             }
             ClipboardManager cb = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-            cb.setPrimaryClip(ClipData.newPlainText("柳之卦 AI 解读", aiText));
+            cb.setPrimaryClip(ClipData.newPlainText(aiTarotMode ? "柳之卦 AI 解牌" : "柳之卦 AI 解卦", aiText));
             haptic(HapticFeedbackConstants.CLOCK_TICK);
             Toast.makeText(getContext(), "AI 解读已复制", Toast.LENGTH_SHORT).show();
         }
@@ -2351,13 +2514,24 @@ public class MainActivity extends Activity implements SensorEventListener {
             hint.setText("选择一种占卜方式 · 结果分别保存"); hint.setTextColor(MUTED); hint.setTextSize(10.5f);
             hint.setPadding(0, 0, 0, (int)(10*density)); root.addView(hint);
             LinearLayout liuYao = settingsCard(ctx, "六爻占卜", "三钱六掷 · 纳甲解卦" + (MODE_LIUYAO.equals(divinationMode) ? " · 当前" : ""));
-            LinearLayout tarot = settingsCard(ctx, "塔罗占卜", "三牌成阵 · 正逆同观" + (MODE_TAROT.equals(divinationMode) ? " · 当前" : ""));
+            LinearLayout tarot = settingsCard(ctx, "塔罗占卜", "牌阵可选 · 正逆同观" + (MODE_TAROT.equals(divinationMode) ? " · 当前" : ""));
             root.addView(liuYao); root.addView(tarot);
             AlertDialog dialog = new AlertDialog.Builder(ctx).setTitle("占卜选择").setView(root).setNegativeButton("取消", null).create();
             liuYao.setOnClickListener(v -> { selectDivinationMode(MODE_LIUYAO); dialog.dismiss(); });
             tarot.setOnClickListener(v -> { selectDivinationMode(MODE_TAROT); dialog.dismiss(); });
             dialog.setOnShowListener(d -> { styleSettingsDialog(dialog); animateSettingsContent(root); });
             dialog.show();
+        }
+
+        private void showTarotSpreadDialog() {
+            List<TarotDeck.Spread> spreads=tarotDeck.spreads();String[] items=new String[spreads.size()];int checked=0;
+            for(int i=0;i<spreads.size();i++){TarotDeck.Spread s=spreads.get(i);items[i]=s.name+"\n"+s.subtitle;if(tarotSpread!=null&&s.id.equals(tarotSpread.id))checked=i;}
+            AlertDialog dialog=new AlertDialog.Builder(getContext()).setTitle("选择牌阵")
+                    .setSingleChoiceItems(items,checked,(d,which)->{
+                        tarotSpread=spreads.get(which);getContext().getSharedPreferences("ryusgua_experience",Context.MODE_PRIVATE).edit().putString("tarot_spread",tarotSpread.id).apply();
+                        haptic(HapticFeedbackConstants.CLOCK_TICK);d.dismiss();postInvalidateOnAnimation();
+                    }).setNegativeButton("取消",null).create();
+            dialog.setOnShowListener(d->styleSettingsDialog(dialog));dialog.show();
         }
 
         private void selectDivinationMode(String mode) {
@@ -2400,12 +2574,13 @@ public class MainActivity extends Activity implements SensorEventListener {
             interaction.setOnClickListener(v -> showInteractionSettingsDialog(
                     () -> interactionSummaryView.setText(interactionSummary()), parentDialog[0]));
 
-            LinearLayout ai = settingsCard(ctx, "智能解卦", aiSettingsSummary(AiSettingsStore.load(ctx)));
+            LinearLayout ai = settingsCard(ctx, MODE_TAROT.equals(divinationMode) ? "智能解牌" : "智能解卦", aiSettingsSummary(AiSettingsStore.load(ctx)));
             root.addView(ai);
             TextView aiSummaryView = (TextView) ai.getChildAt(1);
-            ai.setOnClickListener(v -> showAiSettingsPanel(false, () -> aiSummaryView.setText(aiSettingsSummary(AiSettingsStore.load(ctx)))));
+            ai.setOnClickListener(v -> { aiTarotMode=MODE_TAROT.equals(divinationMode);showAiSettingsPanel(false, () -> aiSummaryView.setText(aiSettingsSummary(AiSettingsStore.load(ctx)))); });
 
-            LinearLayout theory = settingsCard(ctx, "术理索引", "十一专题完全离线");
+            LinearLayout theory = settingsCard(ctx, MODE_TAROT.equals(divinationMode) ? "塔罗索引" : "术理索引",
+                    MODE_TAROT.equals(divinationMode) ? "七篇牌系牌阵参考" : "十一专题完全离线");
             root.addView(theory);
             theory.setOnClickListener(v -> showKnowledgeIndexDialog());
 
@@ -2429,7 +2604,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         private String interactionSummary() {
-            return "交互选项统一管理";
+            return MODE_TAROT.equals(divinationMode) ? "开屏与翻牌交互" : "开屏与铜钱交互";
         }
 
         private void animateSettingsContent(View content) {
@@ -2541,18 +2716,24 @@ public class MainActivity extends Activity implements SensorEventListener {
             bootSpinner.setBackgroundTintList(ColorStateList.valueOf(GOLD)); box.addView(bootSpinner);
             Switch bootProgress = addModernSwitch(ctx, box, "开屏进度", "七种样式同步呈现", bootProgressEnabled);
 
-            addSettingsSection(ctx, box, "动画样式", "选择铜钱呈现方式");
-            Spinner animationSpinner = new Spinner(ctx);
-            animationSpinner.setAdapter(new ArrayAdapter<>(ctx, android.R.layout.simple_spinner_dropdown_item, new String[]{"经典浮动", "物理飞出", "星轨回旋"}));
-            animationSpinner.setSelection(ANIM_PHYSICS.equals(coinAnimationMode) ? 1 : (ANIM_ORBIT.equals(coinAnimationMode) ? 2 : 0));
+            final Spinner animationSpinner = new Spinner(ctx);
+            final Switch[] modeSwitches=new Switch[2];
+            boolean tarotMode=MODE_TAROT.equals(divinationMode);
+            addSettingsSection(ctx, box, tarotMode ? "翻牌样式" : "动画样式", tarotMode ? "仅影响塔罗牌阵呈现" : "仅影响六爻铜钱呈现");
+            if(tarotMode){
+                animationSpinner.setAdapter(new ArrayAdapter<>(ctx,android.R.layout.simple_spinner_dropdown_item,new String[]{"依次翻牌","流光显影","轻叠展开"}));
+                animationSpinner.setSelection(TAROT_REVEAL_GLOW.equals(tarotRevealMode)?1:(TAROT_REVEAL_FAN.equals(tarotRevealMode)?2:0));
+            }else{
+                animationSpinner.setAdapter(new ArrayAdapter<>(ctx, android.R.layout.simple_spinner_dropdown_item, new String[]{"经典浮动", "物理飞出", "星轨回旋"}));
+                animationSpinner.setSelection(ANIM_PHYSICS.equals(coinAnimationMode) ? 1 : (ANIM_ORBIT.equals(coinAnimationMode) ? 2 : 0));
+            }
             animationSpinner.setBackgroundTintList(ColorStateList.valueOf(GOLD)); box.addView(animationSpinner);
+            if(!tarotMode){modeSwitches[0]=addModernSwitch(ctx,box,"垂直翻转","铜钱沿横轴线翻转",verticalFlipEnabled);modeSwitches[1]=addModernSwitch(ctx,box,"手动逐爻","每次操作仅掷一爻",manualCasting);}
 
-            Switch animation = addModernSwitch(ctx, box, "动效呈现", "保留铜钱起落动画", animationEnabled);
-            Switch sound = addModernSwitch(ctx, box, "音效反馈", "投掷落币保留音效", soundEnabled);
-            Switch verticalFlip = addModernSwitch(ctx, box, "垂直翻转", "铜钱沿横轴线翻转", verticalFlipEnabled);
+            Switch animation = addModernSwitch(ctx, box, "动效呈现", tarotMode ? "保留翻牌过渡效果" : "保留铜钱起落动画", animationEnabled);
+            Switch sound = addModernSwitch(ctx, box, "音效反馈", tarotMode ? "翻牌完成保留音效" : "投掷落币保留音效", soundEnabled);
             Switch haptic = addModernSwitch(ctx, box, "触感反馈", "按键起卦触感反馈", hapticEnabled);
             Switch shake = addModernSwitch(ctx, box, "摇动起卦", "摇动设备触发起卦", shakeEnabled);
-            Switch manual = addModernSwitch(ctx, box, "手动逐爻", "每次操作仅掷一爻", manualCasting);
 
             AlertDialog dialog = new AlertDialog.Builder(ctx).setTitle("交互设置").setView(scroll)
                     .setPositiveButton("保存", null).setNeutralButton("开屏演示", null).setNegativeButton("取消", null).create();
@@ -2575,10 +2756,10 @@ public class MainActivity extends Activity implements SensorEventListener {
                     bootStyle = BOOT_STYLES[bootIndex];
                     bootProgressEnabled = bootProgress.isChecked();
                     animationEnabled = animation.isChecked();
-                    soundEnabled = sound.isChecked(); hapticEnabled = haptic.isChecked(); shakeEnabled = shake.isChecked(); manualCasting = manual.isChecked();
-                    verticalFlipEnabled = verticalFlip.isChecked();
+                    soundEnabled = sound.isChecked(); hapticEnabled = haptic.isChecked(); shakeEnabled = shake.isChecked();
                     int animationIndex = animationSpinner.getSelectedItemPosition();
-                    coinAnimationMode = animationIndex == 1 ? ANIM_PHYSICS : (animationIndex == 2 ? ANIM_ORBIT : ANIM_CLASSIC);
+                    if(tarotMode) tarotRevealMode=animationIndex==1?TAROT_REVEAL_GLOW:(animationIndex==2?TAROT_REVEAL_FAN:TAROT_REVEAL_CASCADE);
+                    else {manualCasting=modeSwitches[1].isChecked();verticalFlipEnabled=modeSwitches[0].isChecked();coinAnimationMode = animationIndex == 1 ? ANIM_PHYSICS : (animationIndex == 2 ? ANIM_ORBIT : ANIM_CLASSIC);}
                     saveExperienceSettings();
                     if (onSaved != null) onSaved.run();
                     dialog.dismiss(); postInvalidateOnAnimation();
@@ -2649,8 +2830,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             row.addView(models, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
             row.addView(clear, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1)); box.addView(row);
 
-            AlertDialog dialog = new AlertDialog.Builder(ctx).setTitle("智能解卦").setView(scroll)
-                    .setPositiveButton(startAiAfterSave ? "保存并解卦" : "保存", null).setNegativeButton("取消", null).create();
+            AlertDialog dialog = new AlertDialog.Builder(ctx).setTitle(aiTarotMode ? "智能解牌" : "智能解卦").setView(scroll)
+                    .setPositiveButton(startAiAfterSave ? (aiTarotMode ? "保存并解牌" : "保存并解卦") : "保存", null).setNegativeButton("取消", null).create();
 
             models.setOnClickListener(v -> {
                 String selected = providerValues[provider.getSelectedItemPosition()];

@@ -1,0 +1,1427 @@
+{
+  "schema_version": 1,
+  "authorship": "Ryu's Gua independent offline copy",
+  "cards": [
+    {
+      "id": 0,
+      "name": "0 愚者",
+      "name_en": "The Fool",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "○",
+      "upright": {
+        "keywords": "启程、信任、开放",
+        "meaning": "愿意带着好奇进入未知，经验尚少却拥有重新选择的自由。"
+      },
+      "reversed": {
+        "keywords": "冒进、逃避、失序",
+        "meaning": "自由被用来回避后果，或因害怕犯错而迟迟不肯出发。"
+      },
+      "advice": "先辨认风险，再给探索留出一小步。"
+    },
+    {
+      "id": 1,
+      "name": "I 魔术师",
+      "name_en": "The Magician",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "∞",
+      "upright": {
+        "keywords": "创造、意志、资源",
+        "meaning": "手边的能力与工具可以被有意识地组织，关键在于开始动手。"
+      },
+      "reversed": {
+        "keywords": "分散、操控、空转",
+        "meaning": "能力没有聚焦，表达可能停留在表演或对他人的操控。"
+      },
+      "advice": "列出已有资源，只完成一个明确动作。"
+    },
+    {
+      "id": 2,
+      "name": "II 女祭司",
+      "name_en": "The High Priestess",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "☾",
+      "upright": {
+        "keywords": "直觉、静观、隐知",
+        "meaning": "答案尚未全部显露，安静观察比立即表态更有价值。"
+      },
+      "reversed": {
+        "keywords": "遮蔽、压抑、误读",
+        "meaning": "直觉被焦虑冒充，或重要信息被刻意忽略。"
+      },
+      "advice": "把感受与事实分开记录，等信息完整再判断。"
+    },
+    {
+      "id": 3,
+      "name": "III 皇后",
+      "name_en": "The Empress",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "♀",
+      "upright": {
+        "keywords": "滋养、丰盛、生长",
+        "meaning": "关系、创意或身体需要被照料，稳定投入会带来可见生长。"
+      },
+      "reversed": {
+        "keywords": "透支、依赖、停滞",
+        "meaning": "照料失去边界，给予过多反而让自己或关系枯竭。"
+      },
+      "advice": "先补足自己的资源，再决定能给予多少。"
+    },
+    {
+      "id": 4,
+      "name": "IV 皇帝",
+      "name_en": "The Emperor",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "♔",
+      "upright": {
+        "keywords": "秩序、边界、责任",
+        "meaning": "清晰结构与责任分配能够稳定局面，领导意味着承担结果。"
+      },
+      "reversed": {
+        "keywords": "僵化、控制、越界",
+        "meaning": "规则压过了真实需要，控制欲正在制造新的对抗。"
+      },
+      "advice": "保留必要边界，同时允许他人拥有选择。"
+    },
+    {
+      "id": 5,
+      "name": "V 教皇",
+      "name_en": "The Hierophant",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "⚿",
+      "upright": {
+        "keywords": "传统、学习、信念",
+        "meaning": "成熟的传统、导师或共同规范能提供可复用的方法。"
+      },
+      "reversed": {
+        "keywords": "教条、质疑、脱离",
+        "meaning": "旧规则已不适合当前处境，盲从或反叛都可能失焦。"
+      },
+      "advice": "理解规则为何存在，再决定保留还是改写。"
+    },
+    {
+      "id": 6,
+      "name": "VI 恋人",
+      "name_en": "The Lovers",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "Ⅱ",
+      "upright": {
+        "keywords": "连结、价值、抉择",
+        "meaning": "真正的选择要求价值一致，也要求关系中的坦白与承诺。"
+      },
+      "reversed": {
+        "keywords": "失衡、摇摆、疏离",
+        "meaning": "欲望与价值不一致，或双方在回避必要的对话。"
+      },
+      "advice": "说清底线和期待，不用暧昧代替决定。"
+    },
+    {
+      "id": 7,
+      "name": "VII 战车",
+      "name_en": "The Chariot",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "✦",
+      "upright": {
+        "keywords": "推进、意志、方向",
+        "meaning": "相反力量可以被同一目标统合，行动需要节奏与控制。"
+      },
+      "reversed": {
+        "keywords": "急进、分裂、失控",
+        "meaning": "速度掩盖了方向不明，意志内耗让推进越来越困难。"
+      },
+      "advice": "先校准方向，再决定是否加速。"
+    },
+    {
+      "id": 8,
+      "name": "VIII 力量",
+      "name_en": "Strength",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "♌",
+      "upright": {
+        "keywords": "勇气、耐心、柔韧",
+        "meaning": "稳定不是压制，而是用耐心容纳本能并持续行动。"
+      },
+      "reversed": {
+        "keywords": "自疑、耗竭、失控",
+        "meaning": "力量被自我怀疑消耗，或情绪被压太久后反扑。"
+      },
+      "advice": "降低对抗，用可持续的方式守住核心。"
+    },
+    {
+      "id": 9,
+      "name": "IX 隐者",
+      "name_en": "The Hermit",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "✧",
+      "upright": {
+        "keywords": "独处、求索、洞见",
+        "meaning": "暂时远离噪音能看清真正的问题，答案来自诚实的自省。"
+      },
+      "reversed": {
+        "keywords": "封闭、孤立、迷失",
+        "meaning": "独处变成逃避，过度内省让人失去现实校验。"
+      },
+      "advice": "带着一个具体问题独处，再向可信的人求证。"
+    },
+    {
+      "id": 10,
+      "name": "X 命运之轮",
+      "name_en": "Wheel of Fortune",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "⊙",
+      "upright": {
+        "keywords": "周期、转机、变化",
+        "meaning": "局势进入新的周期，时机与外部变化正在改写原有路径。"
+      },
+      "reversed": {
+        "keywords": "抗拒、反复、失机",
+        "meaning": "重复模式仍在运作，对变化的抗拒延长了停滞。"
+      },
+      "advice": "识别循环中不变的一点，从那里改变回应。"
+    },
+    {
+      "id": 11,
+      "name": "XI 正义",
+      "name_en": "Justice",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "⚖",
+      "upright": {
+        "keywords": "衡量、责任、因果",
+        "meaning": "事实、规则与后果需要被平衡地看见，决定应能经得起复核。"
+      },
+      "reversed": {
+        "keywords": "偏见、逃责、失衡",
+        "meaning": "信息被选择性使用，责任分配或判断标准并不公平。"
+      },
+      "advice": "补齐证据，并愿意承担决定的对应后果。"
+    },
+    {
+      "id": 12,
+      "name": "XII 倒吊人",
+      "name_en": "The Hanged Man",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "▽",
+      "upright": {
+        "keywords": "暂停、换位、放下",
+        "meaning": "暂缓推进能够换取新的视角，放下旧方法并不等于失败。"
+      },
+      "reversed": {
+        "keywords": "拖延、牺牲、僵持",
+        "meaning": "暂停失去目的，牺牲被用来维持无法改变的局面。"
+      },
+      "advice": "给等待设定期限，并明确它要换来什么。"
+    },
+    {
+      "id": 13,
+      "name": "XIII 死神",
+      "name_en": "Death",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "✢",
+      "upright": {
+        "keywords": "结束、转化、更新",
+        "meaning": "一个阶段已经完成，承认结束才能为新的结构腾出空间。"
+      },
+      "reversed": {
+        "keywords": "抗拒、滞留、旧结",
+        "meaning": "对告别的抗拒让旧关系或旧身份继续消耗当下。"
+      },
+      "advice": "完成一个具体的收尾仪式，不急着填满空白。"
+    },
+    {
+      "id": 14,
+      "name": "XIV 节制",
+      "name_en": "Temperance",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "△",
+      "upright": {
+        "keywords": "调和、节奏、修复",
+        "meaning": "不同资源可以被温和整合，恢复来自适度而持续的调整。"
+      },
+      "reversed": {
+        "keywords": "失调、过量、反复",
+        "meaning": "节奏被极端选择打乱，修复尚未形成稳定习惯。"
+      },
+      "advice": "减少一种过量，增加一种长期可守的节律。"
+    },
+    {
+      "id": 15,
+      "name": "XV 恶魔",
+      "name_en": "The Devil",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "♄",
+      "upright": {
+        "keywords": "欲望、束缚、依附",
+        "meaning": "看见欲望与依赖的真实代价，承认束缚是松绑的开始。"
+      },
+      "reversed": {
+        "keywords": "松绑、否认、复发",
+        "meaning": "束缚已被察觉，但仍可能用否认或替代性依赖绕回旧路。"
+      },
+      "advice": "指出自己可以停止配合的一环。"
+    },
+    {
+      "id": 16,
+      "name": "XVI 高塔",
+      "name_en": "The Tower",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "ϟ",
+      "upright": {
+        "keywords": "震动、揭示、破局",
+        "meaning": "不稳固的结构被事实击穿，混乱也带来诚实重建的机会。"
+      },
+      "reversed": {
+        "keywords": "余震、隐患、勉强",
+        "meaning": "危机被压下却未解决，旧结构仍在内部开裂。"
+      },
+      "advice": "先处理安全与事实，再讨论如何重建。"
+    },
+    {
+      "id": 17,
+      "name": "XVII 星星",
+      "name_en": "The Star",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "✶",
+      "upright": {
+        "keywords": "希望、疗愈、信任",
+        "meaning": "经历扰动后重新与希望连接，坦诚与耐心让恢复发生。"
+      },
+      "reversed": {
+        "keywords": "失望、枯竭、迟疑",
+        "meaning": "信心不足让可能性被低估，疗愈需要更现实的支持。"
+      },
+      "advice": "寻找一个能被验证的微小好转。"
+    },
+    {
+      "id": 18,
+      "name": "XVIII 月亮",
+      "name_en": "The Moon",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "☽",
+      "upright": {
+        "keywords": "潜意识、迷雾、感受",
+        "meaning": "信息未明时，梦境与情绪提供线索，却不能单独充当证据。"
+      },
+      "reversed": {
+        "keywords": "焦虑、投射、揭露",
+        "meaning": "恐惧放大了不确定，也可能意味着迷雾正开始散去。"
+      },
+      "advice": "暂停猜测，逐项核实最让你不安的事实。"
+    },
+    {
+      "id": 19,
+      "name": "XIX 太阳",
+      "name_en": "The Sun",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "☉",
+      "upright": {
+        "keywords": "清晰、活力、喜悦",
+        "meaning": "事情进入较明朗的阶段，真实表达与共同庆祝能扩大生命力。"
+      },
+      "reversed": {
+        "keywords": "遮光、过热、延迟",
+        "meaning": "好消息仍在，但自我压抑或过度乐观让价值没有落地。"
+      },
+      "advice": "允许成果被看见，同时保留现实校验。"
+    },
+    {
+      "id": 20,
+      "name": "XX 审判",
+      "name_en": "Judgement",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "↟",
+      "upright": {
+        "keywords": "召唤、复盘、更新",
+        "meaning": "过去的经验要求被重新评价，回应召唤意味着承担新的身份。"
+      },
+      "reversed": {
+        "keywords": "拒绝、自责、迟滞",
+        "meaning": "旧评价困住了行动，过度自责或逃避让更新无法开始。"
+      },
+      "advice": "区分教训与惩罚，给自己一个可执行的回应。"
+    },
+    {
+      "id": 21,
+      "name": "XXI 世界",
+      "name_en": "The World",
+      "family": "大阿卡那",
+      "suit": "",
+      "glyph": "◎",
+      "upright": {
+        "keywords": "完成、整合、圆满",
+        "meaning": "阶段成果已经形成整体，完成既值得确认，也打开下一轮旅程。"
+      },
+      "reversed": {
+        "keywords": "未竟、封闭、失衡",
+        "meaning": "最后一环尚未闭合，或不愿结束让成果无法被真正接住。"
+      },
+      "advice": "列出收尾条件，完成后再开启新目标。"
+    },
+    {
+      "id": 22,
+      "name": "权杖王牌",
+      "name_en": "Ace of Wands",
+      "family": "小阿卡那",
+      "suit": "权杖",
+      "glyph": "♣",
+      "upright": {
+        "keywords": "火种、热情",
+        "meaning": "行动、创造与意志。新的行动冲动正在出现，适合把灵感变成第一次尝试。"
+      },
+      "reversed": {
+        "keywords": "熄火、迟疑",
+        "meaning": "行动、创造与意志的力量受阻、过量或转向内在。热情尚未找到现实入口，或开端被冲动消耗。"
+      },
+      "advice": "把灵感写成最小可行动作。"
+    },
+    {
+      "id": 23,
+      "name": "权杖二",
+      "name_en": "Two of Wands",
+      "family": "小阿卡那",
+      "suit": "权杖",
+      "glyph": "♣",
+      "upright": {
+        "keywords": "权衡、调度",
+        "meaning": "行动、创造与意志。两个方向都可行，真正的问题是你愿意为哪一个投入。"
+      },
+      "reversed": {
+        "keywords": "失衡、空想",
+        "meaning": "行动、创造与意志的力量受阻、过量或转向内在。计划停留在远望，选择拖延正在缩小空间。"
+      },
+      "advice": "明确优先级与交换条件。"
+    },
+    {
+      "id": 24,
+      "name": "权杖三",
+      "name_en": "Three of Wands",
+      "family": "小阿卡那",
+      "suit": "权杖",
+      "glyph": "♣",
+      "upright": {
+        "keywords": "拓展、远见",
+        "meaning": "行动、创造与意志。前期行动开始产生回响，视野应从眼前扩到下一阶段。"
+      },
+      "reversed": {
+        "keywords": "受阻、短视",
+        "meaning": "行动、创造与意志的力量受阻、过量或转向内在。外部回响迟缓，过早收缩视野会错过调整机会。"
+      },
+      "advice": "主动获取一次具体反馈。"
+    },
+    {
+      "id": 25,
+      "name": "权杖四",
+      "name_en": "Four of Wands",
+      "family": "小阿卡那",
+      "suit": "权杖",
+      "glyph": "♣",
+      "upright": {
+        "keywords": "归属、庆成",
+        "meaning": "行动、创造与意志。阶段成果值得确认，稳定的支持关系可以成为落脚点。"
+      },
+      "reversed": {
+        "keywords": "不稳、失和",
+        "meaning": "行动、创造与意志的力量受阻、过量或转向内在。庆祝背后仍有归属或家庭边界问题需要处理。"
+      },
+      "advice": "确认什么值得保护、什么需要流动。"
+    },
+    {
+      "id": 26,
+      "name": "权杖五",
+      "name_en": "Five of Wands",
+      "family": "小阿卡那",
+      "suit": "权杖",
+      "glyph": "♣",
+      "upright": {
+        "keywords": "竞争、磨合",
+        "meaning": "行动、创造与意志。多股意志同时发声，摩擦能暴露规则与分工的缺口。"
+      },
+      "reversed": {
+        "keywords": "内耗、避战",
+        "meaning": "行动、创造与意志的力量受阻、过量或转向内在。竞争失去目标，压下冲突也未必等于真正和解。"
+      },
+      "advice": "承认缺口，并寻找可用支持。"
+    },
+    {
+      "id": 27,
+      "name": "权杖六",
+      "name_en": "Six of Wands",
+      "family": "小阿卡那",
+      "suit": "权杖",
+      "glyph": "♣",
+      "upright": {
+        "keywords": "认可、进展",
+        "meaning": "行动、创造与意志。努力被看见，胜利需要与团队共享并转化为下一步责任。"
+      },
+      "reversed": {
+        "keywords": "虚荣、受挫",
+        "meaning": "行动、创造与意志的力量受阻、过量或转向内在。认可不足或过度依赖掌声，容易忽略真实进度。"
+      },
+      "advice": "检查给予与接受是否对等。"
+    },
+    {
+      "id": 28,
+      "name": "权杖七",
+      "name_en": "Seven of Wands",
+      "family": "小阿卡那",
+      "suit": "权杖",
+      "glyph": "♣",
+      "upright": {
+        "keywords": "守位、坚持",
+        "meaning": "行动、创造与意志。立场正在接受检验，坚持应来自理由而不是逞强。"
+      },
+      "reversed": {
+        "keywords": "防线、疲惫",
+        "meaning": "行动、创造与意志的力量受阻、过量或转向内在。长期防守让立场僵化，可能需要重新评估所守之物。"
+      },
+      "advice": "用可观察指标评估投入。"
+    },
+    {
+      "id": 29,
+      "name": "权杖八",
+      "name_en": "Eight of Wands",
+      "family": "小阿卡那",
+      "suit": "权杖",
+      "glyph": "♣",
+      "upright": {
+        "keywords": "加速、讯息",
+        "meaning": "行动、创造与意志。事件迅速推进，清晰沟通能避免速度制造误解。"
+      },
+      "reversed": {
+        "keywords": "延误、躁进",
+        "meaning": "行动、创造与意志的力量受阻、过量或转向内在。消息混乱或节奏过快，行动先于确认。"
+      },
+      "advice": "留出固定时间练习基本功。"
+    },
+    {
+      "id": 30,
+      "name": "权杖九",
+      "name_en": "Nine of Wands",
+      "family": "小阿卡那",
+      "suit": "权杖",
+      "glyph": "♣",
+      "upright": {
+        "keywords": "韧性、警觉",
+        "meaning": "行动、创造与意志。经历消耗后仍有守住边界的能力，但无需把所有人视为威胁。"
+      },
+      "reversed": {
+        "keywords": "戒备、耗竭",
+        "meaning": "行动、创造与意志的力量受阻、过量或转向内在。过去经验放大了威胁，身心需要恢复而非继续硬撑。"
+      },
+      "advice": "确认成果是否支持真正的自主。"
+    },
+    {
+      "id": 31,
+      "name": "权杖十",
+      "name_en": "Ten of Wands",
+      "family": "小阿卡那",
+      "suit": "权杖",
+      "glyph": "♣",
+      "upright": {
+        "keywords": "负担、承载",
+        "meaning": "行动、创造与意志。责任接近上限，继续独扛会让目标与意义一起变重。"
+      },
+      "reversed": {
+        "keywords": "过载、卸责",
+        "meaning": "行动、创造与意志的力量受阻、过量或转向内在。负担已经失控，逃避与全扛同样需要被纠正。"
+      },
+      "advice": "为长期结构补上一项维护。"
+    },
+    {
+      "id": 32,
+      "name": "权杖侍从",
+      "name_en": "Page of Wands",
+      "family": "小阿卡那",
+      "suit": "权杖",
+      "glyph": "♣",
+      "upright": {
+        "keywords": "探索、消息",
+        "meaning": "行动、创造与意志。好奇心带来新任务或消息，经验不足可以用学习补足。"
+      },
+      "reversed": {
+        "keywords": "浮躁、夸大",
+        "meaning": "行动、创造与意志的力量受阻、过量或转向内在。消息未经核实，学习热情可能被三分钟热度替代。"
+      },
+      "advice": "先学习与核实，再承诺。"
+    },
+    {
+      "id": 33,
+      "name": "权杖骑士",
+      "name_en": "Knight of Wands",
+      "family": "小阿卡那",
+      "suit": "权杖",
+      "glyph": "♣",
+      "upright": {
+        "keywords": "冲锋、冒险",
+        "meaning": "行动、创造与意志。强烈目标推动直接行动，速度有价值但必须看见后果。"
+      },
+      "reversed": {
+        "keywords": "鲁莽、停顿",
+        "meaning": "行动、创造与意志的力量受阻、过量或转向内在。冲劲找不到方向，承诺容易快进快退。"
+      },
+      "advice": "降低速度，保留复盘节点。"
+    },
+    {
+      "id": 34,
+      "name": "权杖王后",
+      "name_en": "Queen of Wands",
+      "family": "小阿卡那",
+      "suit": "权杖",
+      "glyph": "♣",
+      "upright": {
+        "keywords": "自信、感染",
+        "meaning": "行动、创造与意志。成熟热情能够鼓舞他人，也能为创意提供持续照料。"
+      },
+      "reversed": {
+        "keywords": "妒意、耗散",
+        "meaning": "行动、创造与意志的力量受阻、过量或转向内在。自信转为比较或控制，创造力因外部认可而枯竭。"
+      },
+      "advice": "照顾资源，同时守住边界。"
+    },
+    {
+      "id": 35,
+      "name": "权杖国王",
+      "name_en": "King of Wands",
+      "family": "小阿卡那",
+      "suit": "权杖",
+      "glyph": "♣",
+      "upright": {
+        "keywords": "愿景、领导",
+        "meaning": "行动、创造与意志。有能力把长期愿景转成行动秩序，领导需要兑现承诺。"
+      },
+      "reversed": {
+        "keywords": "专断、失信",
+        "meaning": "行动、创造与意志的力量受阻、过量或转向内在。愿景被权威欲取代，团队难以参与真实决定。"
+      },
+      "advice": "让权力与责任保持对称。"
+    },
+    {
+      "id": 36,
+      "name": "圣杯王牌",
+      "name_en": "Ace of Cups",
+      "family": "小阿卡那",
+      "suit": "圣杯",
+      "glyph": "♥",
+      "upright": {
+        "keywords": "情感、新流",
+        "meaning": "情感、关系与直觉。新的感受或关系空间被打开，允许自己真诚接收。"
+      },
+      "reversed": {
+        "keywords": "堵塞、溢出",
+        "meaning": "情感、关系与直觉的力量受阻、过量或转向内在。情感流动受阻或过量，先照顾自身容量。"
+      },
+      "advice": "把灵感写成最小可行动作。"
+    },
+    {
+      "id": 37,
+      "name": "圣杯二",
+      "name_en": "Two of Cups",
+      "family": "小阿卡那",
+      "suit": "圣杯",
+      "glyph": "♥",
+      "upright": {
+        "keywords": "互信、联结",
+        "meaning": "情感、关系与直觉。双方愿意相互看见，平等回应比浪漫想象更重要。"
+      },
+      "reversed": {
+        "keywords": "失衡、误会",
+        "meaning": "情感、关系与直觉的力量受阻、过量或转向内在。回应不对等或价值不一致，关系需要坦白校准。"
+      },
+      "advice": "明确优先级与交换条件。"
+    },
+    {
+      "id": 38,
+      "name": "圣杯三",
+      "name_en": "Three of Cups",
+      "family": "小阿卡那",
+      "suit": "圣杯",
+      "glyph": "♥",
+      "upright": {
+        "keywords": "友伴、分享",
+        "meaning": "情感、关系与直觉。支持网络带来庆祝与修复，关系在共同体验中加深。"
+      },
+      "reversed": {
+        "keywords": "过度、疏离",
+        "meaning": "情感、关系与直觉的力量受阻、过量或转向内在。社交热闹掩盖真实连接，或群体边界开始失控。"
+      },
+      "advice": "主动获取一次具体反馈。"
+    },
+    {
+      "id": 39,
+      "name": "圣杯四",
+      "name_en": "Four of Cups",
+      "family": "小阿卡那",
+      "suit": "圣杯",
+      "glyph": "♥",
+      "upright": {
+        "keywords": "倦怠、重看",
+        "meaning": "情感、关系与直觉。现有选择难以触动内心，需要辨认被忽略的邀请。"
+      },
+      "reversed": {
+        "keywords": "错失、封闭",
+        "meaning": "情感、关系与直觉的力量受阻、过量或转向内在。麻木让机会被忽略，也可能是内心需要休息。"
+      },
+      "advice": "确认什么值得保护、什么需要流动。"
+    },
+    {
+      "id": 40,
+      "name": "圣杯五",
+      "name_en": "Five of Cups",
+      "family": "小阿卡那",
+      "suit": "圣杯",
+      "glyph": "♥",
+      "upright": {
+        "keywords": "失落、哀悼",
+        "meaning": "情感、关系与直觉。失去值得被承认，但仍有未被看见的支持与可能。"
+      },
+      "reversed": {
+        "keywords": "沉溺、复原",
+        "meaning": "情感、关系与直觉的力量受阻、过量或转向内在。注意力仍困在失去中，但接受支持的能力正在恢复。"
+      },
+      "advice": "承认缺口，并寻找可用支持。"
+    },
+    {
+      "id": 41,
+      "name": "圣杯六",
+      "name_en": "Six of Cups",
+      "family": "小阿卡那",
+      "suit": "圣杯",
+      "glyph": "♥",
+      "upright": {
+        "keywords": "回忆、温柔",
+        "meaning": "情感、关系与直觉。旧记忆带来安慰或线索，成熟回应不等于回到过去。"
+      },
+      "reversed": {
+        "keywords": "怀旧、停留",
+        "meaning": "情感、关系与直觉的力量受阻、过量或转向内在。过去被理想化，旧模式正在影响当下选择。"
+      },
+      "advice": "检查给予与接受是否对等。"
+    },
+    {
+      "id": 42,
+      "name": "圣杯七",
+      "name_en": "Seven of Cups",
+      "family": "小阿卡那",
+      "suit": "圣杯",
+      "glyph": "♥",
+      "upright": {
+        "keywords": "想象、选择",
+        "meaning": "情感、关系与直觉。可能性很多，区分愿景、诱惑与真实资源是关键。"
+      },
+      "reversed": {
+        "keywords": "幻象、混乱",
+        "meaning": "情感、关系与直觉的力量受阻、过量或转向内在。选项被欲望放大，现实条件与优先级需要重新排序。"
+      },
+      "advice": "用可观察指标评估投入。"
+    },
+    {
+      "id": 43,
+      "name": "圣杯八",
+      "name_en": "Eight of Cups",
+      "family": "小阿卡那",
+      "suit": "圣杯",
+      "glyph": "♥",
+      "upright": {
+        "keywords": "离开、寻真",
+        "meaning": "情感、关系与直觉。已有满足不再足够，离开熟悉环境是寻找更深意义。"
+      },
+      "reversed": {
+        "keywords": "徘徊、逃离",
+        "meaning": "情感、关系与直觉的力量受阻、过量或转向内在。明知需要离开却反复回头，或把逃避误认为追寻。"
+      },
+      "advice": "留出固定时间练习基本功。"
+    },
+    {
+      "id": 44,
+      "name": "圣杯九",
+      "name_en": "Nine of Cups",
+      "family": "小阿卡那",
+      "suit": "圣杯",
+      "glyph": "♥",
+      "upright": {
+        "keywords": "满足、感恩",
+        "meaning": "情感、关系与直觉。愿望有机会实现，享受成果也要看见它的边界。"
+      },
+      "reversed": {
+        "keywords": "不满、放纵",
+        "meaning": "情感、关系与直觉的力量受阻、过量或转向内在。短期满足无法填补真正需要，愿望可能偏离价值。"
+      },
+      "advice": "确认成果是否支持真正的自主。"
+    },
+    {
+      "id": 45,
+      "name": "圣杯十",
+      "name_en": "Ten of Cups",
+      "family": "小阿卡那",
+      "suit": "圣杯",
+      "glyph": "♥",
+      "upright": {
+        "keywords": "情感、家园",
+        "meaning": "情感、关系与直觉。长期关系与共同价值形成稳定感，幸福需要持续经营。"
+      },
+      "reversed": {
+        "keywords": "失和、表象",
+        "meaning": "情感、关系与直觉的力量受阻、过量或转向内在。家庭或关系的和谐停留在表面，未说出口的问题仍在。"
+      },
+      "advice": "为长期结构补上一项维护。"
+    },
+    {
+      "id": 46,
+      "name": "圣杯侍从",
+      "name_en": "Page of Cups",
+      "family": "小阿卡那",
+      "suit": "圣杯",
+      "glyph": "♥",
+      "upright": {
+        "keywords": "敏感、邀约",
+        "meaning": "情感、关系与直觉。细腻感受带来消息或创作冲动，适合温和表达。"
+      },
+      "reversed": {
+        "keywords": "敏感、幼化",
+        "meaning": "情感、关系与直觉的力量受阻、过量或转向内在。情绪消息被误读，表达容易退回试探或依赖。"
+      },
+      "advice": "先学习与核实，再承诺。"
+    },
+    {
+      "id": 47,
+      "name": "圣杯骑士",
+      "name_en": "Knight of Cups",
+      "family": "小阿卡那",
+      "suit": "圣杯",
+      "glyph": "♥",
+      "upright": {
+        "keywords": "追随、浪漫",
+        "meaning": "情感、关系与直觉。愿意为感受行动，真诚邀约需要配合现实承诺。"
+      },
+      "reversed": {
+        "keywords": "空诺、沉醉",
+        "meaning": "情感、关系与直觉的力量受阻、过量或转向内在。浪漫表达多于落实，行动可能跟不上感受。"
+      },
+      "advice": "降低速度，保留复盘节点。"
+    },
+    {
+      "id": 48,
+      "name": "圣杯王后",
+      "name_en": "Queen of Cups",
+      "family": "小阿卡那",
+      "suit": "圣杯",
+      "glyph": "♥",
+      "upright": {
+        "keywords": "共情、容纳",
+        "meaning": "情感、关系与直觉。成熟地感受而不被淹没，柔软与边界可以同时存在。"
+      },
+      "reversed": {
+        "keywords": "牺牲、失衡",
+        "meaning": "情感、关系与直觉的力量受阻、过量或转向内在。共情没有边界，照顾他人正在耗尽自己。"
+      },
+      "advice": "照顾资源，同时守住边界。"
+    },
+    {
+      "id": 49,
+      "name": "圣杯国王",
+      "name_en": "King of Cups",
+      "family": "小阿卡那",
+      "suit": "圣杯",
+      "glyph": "♥",
+      "upright": {
+        "keywords": "稳情、理解",
+        "meaning": "情感、关系与直觉。情绪被稳定承接，能够以不逃避的方式回应复杂关系。"
+      },
+      "reversed": {
+        "keywords": "压抑、操控",
+        "meaning": "情感、关系与直觉的力量受阻、过量或转向内在。冷静成为情感控制，或压抑累积成突然反应。"
+      },
+      "advice": "让权力与责任保持对称。"
+    },
+    {
+      "id": 50,
+      "name": "宝剑王牌",
+      "name_en": "Ace of Swords",
+      "family": "小阿卡那",
+      "suit": "宝剑",
+      "glyph": "♠",
+      "upright": {
+        "keywords": "洞见、决断",
+        "meaning": "思考、沟通与冲突。事实被清楚切开，新理解要求诚实而精准的表达。"
+      },
+      "reversed": {
+        "keywords": "混乱、误判",
+        "meaning": "思考、沟通与冲突的力量受阻、过量或转向内在。清晰被偏见遮蔽，急于下结论会制造新的矛盾。"
+      },
+      "advice": "把灵感写成最小可行动作。"
+    },
+    {
+      "id": 51,
+      "name": "宝剑二",
+      "name_en": "Two of Swords",
+      "family": "小阿卡那",
+      "suit": "宝剑",
+      "glyph": "♠",
+      "upright": {
+        "keywords": "僵局、权衡",
+        "meaning": "思考、沟通与冲突。暂时无法选择时，需要补充信息而不是永久闭眼。"
+      },
+      "reversed": {
+        "keywords": "拖延、揭开",
+        "meaning": "思考、沟通与冲突的力量受阻、过量或转向内在。僵局难以继续维持，回避的信息正在逼近。"
+      },
+      "advice": "明确优先级与交换条件。"
+    },
+    {
+      "id": 52,
+      "name": "宝剑三",
+      "name_en": "Three of Swords",
+      "family": "小阿卡那",
+      "suit": "宝剑",
+      "glyph": "♠",
+      "upright": {
+        "keywords": "伤痛、真相",
+        "meaning": "思考、沟通与冲突。痛苦来自无法回避的事实，承认它是修复的入口。"
+      },
+      "reversed": {
+        "keywords": "复原、压痛",
+        "meaning": "思考、沟通与冲突的力量受阻、过量或转向内在。伤口开始愈合，但压抑真相可能延长疼痛。"
+      },
+      "advice": "主动获取一次具体反馈。"
+    },
+    {
+      "id": 53,
+      "name": "宝剑四",
+      "name_en": "Four of Swords",
+      "family": "小阿卡那",
+      "suit": "宝剑",
+      "glyph": "♠",
+      "upright": {
+        "keywords": "休整、静止",
+        "meaning": "思考、沟通与冲突。思绪需要停止作战，休息能让判断恢复清晰。"
+      },
+      "reversed": {
+        "keywords": "倦怠、躁动",
+        "meaning": "思考、沟通与冲突的力量受阻、过量或转向内在。休息不足或停顿过久，神经仍处于警戒。"
+      },
+      "advice": "确认什么值得保护、什么需要流动。"
+    },
+    {
+      "id": 54,
+      "name": "宝剑五",
+      "name_en": "Five of Swords",
+      "family": "小阿卡那",
+      "suit": "宝剑",
+      "glyph": "♠",
+      "upright": {
+        "keywords": "冲突、代价",
+        "meaning": "思考、沟通与冲突。赢得争论不等于解决问题，必须计算关系与信任的代价。"
+      },
+      "reversed": {
+        "keywords": "和解、余怨",
+        "meaning": "思考、沟通与冲突的力量受阻、过量或转向内在。冲突可能退潮，但胜负心与旧怨仍需处理。"
+      },
+      "advice": "承认缺口，并寻找可用支持。"
+    },
+    {
+      "id": 55,
+      "name": "宝剑六",
+      "name_en": "Six of Swords",
+      "family": "小阿卡那",
+      "suit": "宝剑",
+      "glyph": "♠",
+      "upright": {
+        "keywords": "过渡、远离",
+        "meaning": "思考、沟通与冲突。正从困难水域转向较稳定的位置，过程仍需要耐心。"
+      },
+      "reversed": {
+        "keywords": "停滞、旧岸",
+        "meaning": "思考、沟通与冲突的力量受阻、过量或转向内在。过渡受阻，行李或旧叙事让人难以真正离开。"
+      },
+      "advice": "检查给予与接受是否对等。"
+    },
+    {
+      "id": 56,
+      "name": "宝剑七",
+      "name_en": "Seven of Swords",
+      "family": "小阿卡那",
+      "suit": "宝剑",
+      "glyph": "♠",
+      "upright": {
+        "keywords": "策略、隐情",
+        "meaning": "思考、沟通与冲突。需要策略与隐私，但绕开责任会让聪明变成欺瞒。"
+      },
+      "reversed": {
+        "keywords": "坦白、自欺",
+        "meaning": "思考、沟通与冲突的力量受阻、过量或转向内在。隐情可能揭露，也可能仍在用策略欺骗自己。"
+      },
+      "advice": "用可观察指标评估投入。"
+    },
+    {
+      "id": 57,
+      "name": "宝剑八",
+      "name_en": "Eight of Swords",
+      "family": "小阿卡那",
+      "suit": "宝剑",
+      "glyph": "♠",
+      "upright": {
+        "keywords": "受困、盲点",
+        "meaning": "思考、沟通与冲突。限制部分来自叙事与恐惧，仍存在可以移动的一小步。"
+      },
+      "reversed": {
+        "keywords": "松绑、内限",
+        "meaning": "思考、沟通与冲突的力量受阻、过量或转向内在。外部束缚减少，下一步是挑战内在的无力感。"
+      },
+      "advice": "留出固定时间练习基本功。"
+    },
+    {
+      "id": 58,
+      "name": "宝剑九",
+      "name_en": "Nine of Swords",
+      "family": "小阿卡那",
+      "suit": "宝剑",
+      "glyph": "♠",
+      "upright": {
+        "keywords": "焦虑、失眠",
+        "meaning": "思考、沟通与冲突。思想正在反复放大危险，把担忧写成可核实的问题。"
+      },
+      "reversed": {
+        "keywords": "释忧、深陷",
+        "meaning": "思考、沟通与冲突的力量受阻、过量或转向内在。焦虑开始缓解，或因羞耻与孤立而进一步加重。"
+      },
+      "advice": "确认成果是否支持真正的自主。"
+    },
+    {
+      "id": 59,
+      "name": "宝剑十",
+      "name_en": "Ten of Swords",
+      "family": "小阿卡那",
+      "suit": "宝剑",
+      "glyph": "♠",
+      "upright": {
+        "keywords": "终结、触底",
+        "meaning": "思考、沟通与冲突。旧局势已难维持，最低点也意味着结束正在发生。"
+      },
+      "reversed": {
+        "keywords": "复起、拒结",
+        "meaning": "思考、沟通与冲突的力量受阻、过量或转向内在。最坏阶段可望过去，但拒绝承认结束会延长消耗。"
+      },
+      "advice": "为长期结构补上一项维护。"
+    },
+    {
+      "id": 60,
+      "name": "宝剑侍从",
+      "name_en": "Page of Swords",
+      "family": "小阿卡那",
+      "suit": "宝剑",
+      "glyph": "♠",
+      "upright": {
+        "keywords": "观察、求知",
+        "meaning": "思考、沟通与冲突。敏锐提问能揭示问题，信息需要核验后再传播。"
+      },
+      "reversed": {
+        "keywords": "流言、防御",
+        "meaning": "思考、沟通与冲突的力量受阻、过量或转向内在。好奇变成窥探，信息片段被当成完整事实。"
+      },
+      "advice": "先学习与核实，再承诺。"
+    },
+    {
+      "id": 61,
+      "name": "宝剑骑士",
+      "name_en": "Knight of Swords",
+      "family": "小阿卡那",
+      "suit": "宝剑",
+      "glyph": "♠",
+      "upright": {
+        "keywords": "直言、突破",
+        "meaning": "思考、沟通与冲突。快速判断与行动可以破局，但语气与时机同样重要。"
+      },
+      "reversed": {
+        "keywords": "粗暴、失速",
+        "meaning": "思考、沟通与冲突的力量受阻、过量或转向内在。速度与攻击性失控，决定可能缺乏上下文。"
+      },
+      "advice": "降低速度，保留复盘节点。"
+    },
+    {
+      "id": 62,
+      "name": "宝剑王后",
+      "name_en": "Queen of Swords",
+      "family": "小阿卡那",
+      "suit": "宝剑",
+      "glyph": "♠",
+      "upright": {
+        "keywords": "独立、辨识",
+        "meaning": "思考、沟通与冲突。清醒边界与经验让判断不被情绪裹挟。"
+      },
+      "reversed": {
+        "keywords": "冷酷、积怨",
+        "meaning": "思考、沟通与冲突的力量受阻、过量或转向内在。边界变成排斥，批判力被旧伤驱动。"
+      },
+      "advice": "照顾资源，同时守住边界。"
+    },
+    {
+      "id": 63,
+      "name": "宝剑国王",
+      "name_en": "King of Swords",
+      "family": "小阿卡那",
+      "suit": "宝剑",
+      "glyph": "♠",
+      "upright": {
+        "keywords": "理性、原则",
+        "meaning": "思考、沟通与冲突。系统思考与公平规则能够处理复杂决定。"
+      },
+      "reversed": {
+        "keywords": "滥权、诡辩",
+        "meaning": "思考、沟通与冲突的力量受阻、过量或转向内在。理性被用来合理化控制，规则失去公平。"
+      },
+      "advice": "让权力与责任保持对称。"
+    },
+    {
+      "id": 64,
+      "name": "星币王牌",
+      "name_en": "Ace of Pentacles",
+      "family": "小阿卡那",
+      "suit": "星币",
+      "glyph": "◆",
+      "upright": {
+        "keywords": "机会、落地",
+        "meaning": "现实、资源与身体。可触及的资源或工作机会出现，价值需要实际培育。"
+      },
+      "reversed": {
+        "keywords": "错机、空转",
+        "meaning": "现实、资源与身体的力量受阻、过量或转向内在。机会缺少落实条件，或过度关注回报而忽略基础。"
+      },
+      "advice": "把灵感写成最小可行动作。"
+    },
+    {
+      "id": 65,
+      "name": "星币二",
+      "name_en": "Two of Pentacles",
+      "family": "小阿卡那",
+      "suit": "星币",
+      "glyph": "◆",
+      "upright": {
+        "keywords": "调度、弹性",
+        "meaning": "现实、资源与身体。多项责任需要动态平衡，节奏比完美更重要。"
+      },
+      "reversed": {
+        "keywords": "混乱、失衡",
+        "meaning": "现实、资源与身体的力量受阻、过量或转向内在。调度超出容量，财务与时间需要重新排序。"
+      },
+      "advice": "明确优先级与交换条件。"
+    },
+    {
+      "id": 66,
+      "name": "星币三",
+      "name_en": "Three of Pentacles",
+      "family": "小阿卡那",
+      "suit": "星币",
+      "glyph": "◆",
+      "upright": {
+        "keywords": "技艺、协作",
+        "meaning": "现实、资源与身体。专业能力在合作中成形，反馈能让成果更可靠。"
+      },
+      "reversed": {
+        "keywords": "敷衍、失协",
+        "meaning": "现实、资源与身体的力量受阻、过量或转向内在。标准不一或合作不足，技术成果难以稳定。"
+      },
+      "advice": "主动获取一次具体反馈。"
+    },
+    {
+      "id": 67,
+      "name": "星币四",
+      "name_en": "Four of Pentacles",
+      "family": "小阿卡那",
+      "suit": "星币",
+      "glyph": "◆",
+      "upright": {
+        "keywords": "守成、边界",
+        "meaning": "现实、资源与身体。保护资源有其必要，但安全感不应只来自占有。"
+      },
+      "reversed": {
+        "keywords": "吝守、恐失",
+        "meaning": "现实、资源与身体的力量受阻、过量或转向内在。保护变成紧抓，资源流动因害怕失去而停滞。"
+      },
+      "advice": "确认什么值得保护、什么需要流动。"
+    },
+    {
+      "id": 68,
+      "name": "星币五",
+      "name_en": "Five of Pentacles",
+      "family": "小阿卡那",
+      "suit": "星币",
+      "glyph": "◆",
+      "upright": {
+        "keywords": "匮乏、求助",
+        "meaning": "现实、资源与身体。现实压力或孤立感突出，支持往往比想象中更近。"
+      },
+      "reversed": {
+        "keywords": "复苏、排斥",
+        "meaning": "现实、资源与身体的力量受阻、过量或转向内在。困难可能缓解，但羞耻或封闭仍阻碍求助。"
+      },
+      "advice": "承认缺口，并寻找可用支持。"
+    },
+    {
+      "id": 69,
+      "name": "星币六",
+      "name_en": "Six of Pentacles",
+      "family": "小阿卡那",
+      "suit": "星币",
+      "glyph": "◆",
+      "upright": {
+        "keywords": "交换、公平",
+        "meaning": "现实、资源与身体。给予与接受需要透明标准，帮助不应制造依赖。"
+      },
+      "reversed": {
+        "keywords": "欠衡、附带",
+        "meaning": "现实、资源与身体的力量受阻、过量或转向内在。给予带着控制，或交换关系长期不对等。"
+      },
+      "advice": "检查给予与接受是否对等。"
+    },
+    {
+      "id": 70,
+      "name": "星币七",
+      "name_en": "Seven of Pentacles",
+      "family": "小阿卡那",
+      "suit": "星币",
+      "glyph": "◆",
+      "upright": {
+        "keywords": "等待、评估",
+        "meaning": "现实、资源与身体。长期投入进入观察期，应根据真实成长决定继续或调整。"
+      },
+      "reversed": {
+        "keywords": "焦躁、无果",
+        "meaning": "现实、资源与身体的力量受阻、过量或转向内在。等待失去评估标准，投入与产出需要诚实复盘。"
+      },
+      "advice": "用可观察指标评估投入。"
+    },
+    {
+      "id": 71,
+      "name": "星币八",
+      "name_en": "Eight of Pentacles",
+      "family": "小阿卡那",
+      "suit": "星币",
+      "glyph": "◆",
+      "upright": {
+        "keywords": "练习、精进",
+        "meaning": "现实、资源与身体。重复练习正在积累能力，专注会转化为可信成果。"
+      },
+      "reversed": {
+        "keywords": "倦工、粗疏",
+        "meaning": "现实、资源与身体的力量受阻、过量或转向内在。重复失去意义，完美主义或敷衍都在损害技艺。"
+      },
+      "advice": "留出固定时间练习基本功。"
+    },
+    {
+      "id": 72,
+      "name": "星币九",
+      "name_en": "Nine of Pentacles",
+      "family": "小阿卡那",
+      "suit": "星币",
+      "glyph": "◆",
+      "upright": {
+        "keywords": "自足、成果",
+        "meaning": "现实、资源与身体。独立经营带来稳定与品味，享受不必以隔绝为代价。"
+      },
+      "reversed": {
+        "keywords": "依赖、虚饰",
+        "meaning": "现实、资源与身体的力量受阻、过量或转向内在。稳定建立在外部认可或消费表象上，自主性不足。"
+      },
+      "advice": "确认成果是否支持真正的自主。"
+    },
+    {
+      "id": 73,
+      "name": "星币十",
+      "name_en": "Ten of Pentacles",
+      "family": "小阿卡那",
+      "suit": "星币",
+      "glyph": "◆",
+      "upright": {
+        "keywords": "传承、长期",
+        "meaning": "现实、资源与身体。资源、家庭与制度形成长期结构，价值在可持续中延续。"
+      },
+      "reversed": {
+        "keywords": "家业、裂缝",
+        "meaning": "现实、资源与身体的力量受阻、过量或转向内在。长期结构出现资源或价值冲突，表面稳定需要检修。"
+      },
+      "advice": "为长期结构补上一项维护。"
+    },
+    {
+      "id": 74,
+      "name": "星币侍从",
+      "name_en": "Page of Pentacles",
+      "family": "小阿卡那",
+      "suit": "星币",
+      "glyph": "◆",
+      "upright": {
+        "keywords": "学习、实讯",
+        "meaning": "现实、资源与身体。现实领域的新消息带来学习机会，适合从基础开始。"
+      },
+      "reversed": {
+        "keywords": "拖延、浅学",
+        "meaning": "现实、资源与身体的力量受阻、过量或转向内在。计划尚未落地，学习被幻想或即时回报打断。"
+      },
+      "advice": "先学习与核实，再承诺。"
+    },
+    {
+      "id": 75,
+      "name": "星币骑士",
+      "name_en": "Knight of Pentacles",
+      "family": "小阿卡那",
+      "suit": "星币",
+      "glyph": "◆",
+      "upright": {
+        "keywords": "稳进、耐力",
+        "meaning": "现实、资源与身体。可靠推进胜过戏剧性速度，承诺需要日常重复。"
+      },
+      "reversed": {
+        "keywords": "停滞、固执",
+        "meaning": "现实、资源与身体的力量受阻、过量或转向内在。稳定变成拒绝变化，日常推进缺少适应性。"
+      },
+      "advice": "降低速度，保留复盘节点。"
+    },
+    {
+      "id": 76,
+      "name": "星币王后",
+      "name_en": "Queen of Pentacles",
+      "family": "小阿卡那",
+      "suit": "星币",
+      "glyph": "◆",
+      "upright": {
+        "keywords": "照料、丰足",
+        "meaning": "现实、资源与身体。能把资源转成生活支持，务实关怀让关系扎根。"
+      },
+      "reversed": {
+        "keywords": "失序、耗财",
+        "meaning": "现实、资源与身体的力量受阻、过量或转向内在。照料失去边界，身体、家庭或金钱资源被透支。"
+      },
+      "advice": "照顾资源，同时守住边界。"
+    },
+    {
+      "id": 77,
+      "name": "星币国王",
+      "name_en": "King of Pentacles",
+      "family": "小阿卡那",
+      "suit": "星币",
+      "glyph": "◆",
+      "upright": {
+        "keywords": "经营、责任",
+        "meaning": "现实、资源与身体。稳健管理资源并承担长期结果，安全来自持续建设。"
+      },
+      "reversed": {
+        "keywords": "贪执、僵化",
+        "meaning": "现实、资源与身体的力量受阻、过量或转向内在。管理变成占有与控制，长期安全反而受到侵蚀。"
+      },
+      "advice": "让权力与责任保持对称。"
+    }
+  ],
+  "spreads": [
+    {
+      "id": "single",
+      "name": "一牌照见",
+      "name_en": "SINGLE-CARD MIRROR",
+      "subtitle": "此刻",
+      "positions": [
+        {
+          "name": "此刻",
+          "hint": "用一张牌照见当下最值得留意的主题；适合每日观察与收束问题。"
+        }
+      ]
+    },
+    {
+      "id": "three",
+      "name": "三牌成阵",
+      "name_en": "THREE-CARD SPREAD",
+      "subtitle": "缘起 · 此刻 · 趋向",
+      "positions": [
+        {
+          "name": "缘起",
+          "hint": "回看事情如何走到这里，以及仍在影响你的旧线索。"
+        },
+        {
+          "name": "此刻",
+          "hint": "辨认当下最需要正视的力量、情绪与选择。"
+        },
+        {
+          "name": "趋向",
+          "hint": "观察延续当前倾向时可能展开的方向，而非固定结局。"
+        }
+      ]
+    },
+    {
+      "id": "elements",
+      "name": "四象观局",
+      "name_en": "FOUR-ELEMENT SPREAD",
+      "subtitle": "火 · 水 · 风 · 土",
+      "positions": [
+        {
+          "name": "火",
+          "hint": "观察行动、意志与创造冲动：你正在推动什么。"
+        },
+        {
+          "name": "水",
+          "hint": "观察情感、关系与直觉流动：什么需要被感受。"
+        },
+        {
+          "name": "风",
+          "hint": "观察思考、沟通与冲突：什么需要被说清。"
+        },
+        {
+          "name": "土",
+          "hint": "观察资源、身体与现实落点：什么可以真正执行。"
+        }
+      ]
+    }
+  ],
+  "topics": [
+    {
+      "title": "牌系结构",
+      "summary": "二十二张大阿卡那与五十六张小阿卡那",
+      "body": "大阿卡那常用于观察阶段性原型与转折；小阿卡那把主题落到行动、情感、思考与现实生活。抽到大牌不等于事件更“严重”，只表示叙事层级更整体。"
+    },
+    {
+      "title": "四组花色",
+      "summary": "权杖、圣杯、宝剑与星币",
+      "body": "权杖对应行动与意志，圣杯对应情感与关系，宝剑对应思考与沟通，星币对应资源、身体与现实。花色是阅读视角，不是对人生领域的硬性限定。"
+    },
+    {
+      "title": "正位逆位",
+      "summary": "同一主题的外显、受阻、过量或内化",
+      "body": "逆位不是简单的“坏牌”。它可表示力量受阻、过度、延迟或转向内在。阅读时先看牌位，再比较正逆位如何改变同一张牌的表达。"
+    },
+    {
+      "title": "一牌照见",
+      "summary": "一张牌收束当下问题",
+      "body": "适合每日观察、问题聚焦或在信息不足时暂停扩展。单牌不负责给出完整因果，应把关键词转成一个可验证的问题。"
+    },
+    {
+      "title": "三牌成阵",
+      "summary": "缘起、此刻、趋向",
+      "body": "三张牌形成时间与倾向的连续观察。趋向不是固定未来，而是当前路径继续时较可能展开的叙事；改变行动也会改变后续。"
+    },
+    {
+      "title": "四象观局",
+      "summary": "火、水、风、土四个现实切面",
+      "body": "四象牌阵不按时间排序，而把同一问题拆成行动、感受、思考和现实资源。先找重复主题，再处理最失衡或最可行动的一象。"
+    },
+    {
+      "title": "合参方法",
+      "summary": "先牌位、再牌义、后关系",
+      "body": "先确认每张牌所在位置，再读正逆位牌义，最后观察重复花色、相似关键词与冲突。任何解读都应接受现实事实校验，不用于替代医疗、法律或财务等专业判断。"
+    }
+  ]
+}
