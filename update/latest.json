@@ -1,11 +1,11 @@
 {
-  "versionCode": 140,
-  "versionName": "1.4.0",
-  "title": "柳之卦 v1.4.0 / Ryu's Gua 1.4.0",
-  "notes": "新增完整本地六爻纳甲排盘：八宫世应、纳甲、六亲六神、旬空、旺衰、空破暗动、进退回头生克、墓库、三合六合六冲与反伏；新增 11 专题本地术理索引，并将相关盘面事实接入离线解卦和可选 AI。 / Added a fully local Liuyao Najia board engine and an 11-topic offline rule index, with board facts integrated into offline and optional AI readings.",
-  "releasePage": "https://github.com/Ryyus/Ryus-Gua/releases/tag/v1.4.0",
-  "apkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.4.0/RyusGua-v1.4.0-standard.apk",
-  "legacyApkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.4.0/RyusGua-v1.4.0-legacy.apk",
-  "mirrorApkUrl": "https://cdn.jsdelivr.net/gh/Ryyus/Ryus-Gua@v1.4.0/update/releases/v1.4.0/RyusGua-v1.4.0-standard.apk",
-  "legacyMirrorApkUrl": "https://cdn.jsdelivr.net/gh/Ryyus/Ryus-Gua@v1.4.0/update/releases/v1.4.0/RyusGua-v1.4.0-legacy.apk"
+  "versionCode": 150,
+  "versionName": "1.5.0",
+  "title": "柳之卦 v1.5.0 / Ryu's Gua 1.5.0",
+  "notes": "精简卦象结果页，将经文与排盘移入解卦；优化设置中心动画；七套开屏样式现均支持进度效果，并新增开屏演示。 / Simplified the result screen, moved Text and Board into Reading, smoothed settings, extended progress to all seven boot styles, and added Boot Preview.",
+  "releasePage": "https://github.com/Ryyus/Ryus-Gua/releases/tag/v1.5.0",
+  "apkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.5.0/RyusGua-v1.5.0-standard.apk",
+  "legacyApkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.5.0/RyusGua-v1.5.0-legacy.apk",
+  "mirrorApkUrl": "https://cdn.jsdelivr.net/gh/Ryyus/Ryus-Gua@v1.5.0/update/releases/v1.5.0/RyusGua-v1.5.0-standard.apk",
+  "legacyMirrorApkUrl": "https://cdn.jsdelivr.net/gh/Ryyus/Ryus-Gua@v1.5.0/update/releases/v1.5.0/RyusGua-v1.5.0-legacy.apk"
 }
