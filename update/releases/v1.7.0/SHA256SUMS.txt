@@ -1,0 +1,2 @@
+fb79e44779b999cd24e953045d5826b0fb3e780fa9cd18354b2c40a0b2daa809  RyusGua-v1.7.0-standard.apk
+4e0b85d656ca11b5ff1ea9474176f7c3b4c0f596ff488da7d0d8972c906d887f  RyusGua-v1.7.0-legacy.apk
