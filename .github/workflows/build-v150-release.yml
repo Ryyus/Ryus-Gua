@@ -1,0 +1,70 @@
+name: Build v1.5.0 unsigned release
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "v150-artifact-trigger.txt"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: github.head_ref == 'v1.5.0-artifact'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v1.5.0-artifact
+          token: ${{ github.token }}
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK 35
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Verify v1.5.0 source contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "versionCode 150" app/build.gradle
+          grep -q "versionName '1.5.0'" app/build.gradle
+          grep -q '"此卦已成 · 再起一卦"' app/src/main/java/com/ryusgua/app/MainActivity.java
+          grep -q 'setNeutralButton("开屏演示"' app/src/main/java/com/ryusgua/app/MainActivity.java
+          test "$(grep -c 'drawBootProgress(c, w' app/src/main/java/com/ryusgua/app/MainActivity.java)" -ge 6
+      - name: Build and verify unsigned Release APKs
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle assembleStandardRelease assembleLegacyRelease
+          BT="$ANDROID_HOME/build-tools/35.0.0"
+          mkdir -p release/v1.5.0/unsigned
+          "$BT/zipalign" -f -p 4 app/build/outputs/apk/standard/release/app-standard-release-unsigned.apk release/v1.5.0/unsigned/RyusGua-v1.5.0-standard-unsigned-aligned.apk
+          "$BT/zipalign" -f -p 4 app/build/outputs/apk/legacy/release/app-legacy-release-unsigned.apk release/v1.5.0/unsigned/RyusGua-v1.5.0-legacy-unsigned-aligned.apk
+          "$BT/zipalign" -c -v 4 release/v1.5.0/unsigned/RyusGua-v1.5.0-standard-unsigned-aligned.apk >/dev/null
+          "$BT/zipalign" -c -v 4 release/v1.5.0/unsigned/RyusGua-v1.5.0-legacy-unsigned-aligned.apk >/dev/null
+          "$BT/aapt" dump badging release/v1.5.0/unsigned/RyusGua-v1.5.0-standard-unsigned-aligned.apk | tee /tmp/standard.txt
+          "$BT/aapt" dump badging release/v1.5.0/unsigned/RyusGua-v1.5.0-legacy-unsigned-aligned.apk | tee /tmp/legacy.txt
+          grep -q "package: name='com.ryusgua.app' versionCode='150' versionName='1.5.0'" /tmp/standard.txt
+          grep -q "package: name='com.ryusgua.app' versionCode='150' versionName='1.5.0'" /tmp/legacy.txt
+          grep -q "sdkVersion:'26'" /tmp/standard.txt
+          grep -q "sdkVersion:'23'" /tmp/legacy.txt
+          cp "$BT/lib/apksigner.jar" release/v1.5.0/unsigned/apksigner.jar
+          sha256sum release/v1.5.0/unsigned/*.apk > release/v1.5.0/unsigned/SHA256SUMS-unsigned.txt
+      - name: Commit release candidates to temporary branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add release/v1.5.0/unsigned
+          git commit -m "Build v1.5.0 unsigned release candidates"
+          git push origin HEAD:v1.5.0-artifact
