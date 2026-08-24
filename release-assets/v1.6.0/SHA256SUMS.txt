@@ -1,0 +1,2 @@
+014065adab62463a3b57729206db6f8dc6dfb73ded65b733efafac91bfda88c5  RyusGua-v1.6.0-legacy.apk
+ab0a2dff5bcf17d264d905357f2b7b11a1affcdc76a2f84364faca89a53fb6f3  RyusGua-v1.6.0-standard.apk
