@@ -1,0 +1,202 @@
+name: Publish v1.5.0 final
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/publish-v150-final.yml"
+      - "release/v1.5.0/patches/**"
+      - "v150-publish-trigger.txt"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  verify-final:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: v1.5.0-artifact
+          path: artifact-source
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - name: Reconstruct and verify signed APKs
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zstd
+          sdkmanager "build-tools;35.0.0" >/dev/null
+          mkdir -p dist
+          base64 -d release/v1.5.0/patches/standard.patch.zst.b64 > /tmp/standard.patch.zst
+          base64 -d release/v1.5.0/patches/legacy.patch.zst.b64 > /tmp/legacy.patch.zst
+          zstd -d --patch-from=artifact-source/release/v1.5.0/unsigned/RyusGua-v1.5.0-standard-unsigned-aligned.apk /tmp/standard.patch.zst -o dist/RyusGua-v1.5.0-standard.apk
+          zstd -d --patch-from=artifact-source/release/v1.5.0/unsigned/RyusGua-v1.5.0-legacy-unsigned-aligned.apk /tmp/legacy.patch.zst -o dist/RyusGua-v1.5.0-legacy.apk
+          cat > dist/SHA256SUMS.txt <<'SUMS'
+          91685d0c4b7c510601a54a85c95521202bb839faef27b2a8b800f118d25e8aed  RyusGua-v1.5.0-legacy.apk
+          f20cf07be4b26fbdbc70e78e75e2778fbd42526b9322749ebc51794490535065  RyusGua-v1.5.0-standard.apk
+          SUMS
+          (cd dist && sha256sum -c SHA256SUMS.txt)
+          BT="$ANDROID_HOME/build-tools/35.0.0"
+          for apk in dist/*.apk; do
+            "$BT/apksigner" verify --verbose --print-certs "$apk" | tee /tmp/cert.txt
+            grep -q "Signer #1 certificate SHA-256 digest: 14b5ac4ba6814aa62ee254b7a7f6454707350f32cc695f8f240d2f28250f8c5d" /tmp/cert.txt
+            "$BT/aapt" dump badging "$apk" | tee /tmp/badging.txt
+            grep -q "package: name='com.ryusgua.app' versionCode='150' versionName='1.5.0'" /tmp/badging.txt
+          done
+          "$BT/aapt" dump badging dist/RyusGua-v1.5.0-standard.apk | grep -q "sdkVersion:'26'"
+          "$BT/aapt" dump badging dist/RyusGua-v1.5.0-legacy.apk | grep -q "sdkVersion:'23'"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v150-signed-apks
+          path: dist/*
+          if-no-files-found: error
+
+  smoke:
+    needs: verify-final
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - api: 23
+            apk: RyusGua-v1.5.0-legacy.apk
+          - api: 35
+            apk: RyusGua-v1.5.0-standard.apk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: v150-signed-apks
+          path: signed-apks
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: API ${{ matrix.api }} startup smoke
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          arch: x86_64
+          profile: Nexus 6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            set -euo pipefail
+            adb install -r "signed-apks/${{ matrix.apk }}"
+            adb logcat -c
+            adb shell am force-stop com.ryusgua.app
+            adb shell am start -W -n com.ryusgua.app/.MainActivity | tee /tmp/start.txt
+            grep -q "Status: ok" /tmp/start.txt
+            sleep 10
+            adb shell dumpsys activity activities | grep -q "com.ryusgua.app/.MainActivity"
+            if adb logcat -d | grep -A8 "FATAL EXCEPTION" | grep -q "com.ryusgua.app"; then
+              adb logcat -d
+              exit 1
+            fi
+
+  publish:
+    needs: smoke
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: v150-signed-apks
+          path: signed-apks
+      - name: Commit immutable mirror
+        run: |
+          set -euo pipefail
+          if gh release view v1.5.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "v1.5.0 already exists; refusing to overwrite"
+            exit 1
+          fi
+          mkdir -p update/releases/v1.5.0
+          cp signed-apks/RyusGua-v1.5.0-standard.apk update/releases/v1.5.0/
+          cp signed-apks/RyusGua-v1.5.0-legacy.apk update/releases/v1.5.0/
+          cp signed-apks/SHA256SUMS.txt update/releases/v1.5.0/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add update/releases/v1.5.0
+          git commit -m "Publish v1.5.0 signed release mirror"
+          git push origin HEAD:main
+      - name: Create GitHub Release
+        run: |
+          set -euo pipefail
+          cat > /tmp/release-notes.md <<'NOTES'
+          ## 柳之卦 v1.5.0
+
+          - 精简卦象结果页：顶部保留“设置 / 历史”，主操作收敛为“查看解卦”。
+          - “经文 / 排盘”移入解卦页，“此卦已成 · 再起一卦”恢复四字·四字节奏。
+          - 优化设置中心过渡动画，减少首次打开时的停顿。
+          - 七套开屏样式全部补齐进度条或对应进度效果。
+          - 新增“开屏演示”，可按当前草稿设置即时预览且不写入配置。
+          - Android `versionCode 150` / `versionName 1.5.0`。
+
+          正式包沿用 v1 长期证书；Legacy 已在 API 23、Standard 已在 API 35 完成启动测试。
+
+          ## Ryu's Gua 1.5.0
+
+          - Simplified the result screen while keeping Settings and History at the top.
+          - Moved Text and Board into Reading; restored the balanced “此卦已成 · 再起一卦” action.
+          - Smoothed Settings Center transitions.
+          - Completed progress feedback for all seven boot styles.
+          - Added Boot Preview using unsaved draft settings without persisting them.
+          - Android `versionCode 150` / `versionName 1.5.0`.
+
+          Both final APKs retain the long-term v1 signing identity and passed API 23 / API 35 startup smoke tests.
+          NOTES
+          mirror_commit=$(git rev-parse HEAD)
+          gh release create v1.5.0 \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$mirror_commit" \
+            --title "柳之卦 v1.5.0 / Ryu's Gua 1.5.0" \
+            --notes-file /tmp/release-notes.md \
+            signed-apks/RyusGua-v1.5.0-standard.apk \
+            signed-apks/RyusGua-v1.5.0-legacy.apk \
+            signed-apks/SHA256SUMS.txt
+      - name: Verify public downloads
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/redownload
+          curl -fL --retry 8 --retry-delay 5 \
+            "https://github.com/$GITHUB_REPOSITORY/releases/download/v1.5.0/RyusGua-v1.5.0-standard.apk" \
+            -o /tmp/redownload/RyusGua-v1.5.0-standard.apk
+          curl -fL --retry 8 --retry-delay 5 \
+            "https://github.com/$GITHUB_REPOSITORY/releases/download/v1.5.0/RyusGua-v1.5.0-legacy.apk" \
+            -o /tmp/redownload/RyusGua-v1.5.0-legacy.apk
+          cp signed-apks/SHA256SUMS.txt /tmp/redownload/
+          (cd /tmp/redownload && sha256sum -c SHA256SUMS.txt)
+          for item in standard legacy; do
+            expected=$(grep "-$item.apk" signed-apks/SHA256SUMS.txt | cut -d' ' -f1)
+            url="https://cdn.jsdelivr.net/gh/$GITHUB_REPOSITORY@v1.5.0/update/releases/v1.5.0/RyusGua-v1.5.0-$item.apk"
+            ok=0
+            for attempt in $(seq 1 18); do
+              if curl -fsSL "$url" -o "/tmp/jsdelivr-$item.apk" && [ "$(sha256sum "/tmp/jsdelivr-$item.apk" | cut -d' ' -f1)" = "$expected" ]; then
+                ok=1
+                break
+              fi
+              sleep 10
+            done
+            [ "$ok" -eq 1 ]
+          done
+      - name: Close temporary PRs and delete temporary branches
+        if: success()
+        run: |
+          set -euo pipefail
+          gh pr close 32 --repo "$GITHUB_REPOSITORY" --comment "v1.5.0 final APKs were signed, smoke-tested, and published; closing the temporary unsigned-artifact PR."
+          gh pr close "${{ github.event.pull_request.number }}" --repo "$GITHUB_REPOSITORY" --comment "v1.5.0 was published successfully; closing the temporary publication PR."
+          for branch in v1.5.0-dev v1.5.0-artifact v1.5.0-publish; do
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$branch" || true
+          done
