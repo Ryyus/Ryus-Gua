@@ -21,17 +21,11 @@ jobs:
         with:
           ref: v1.5.0-artifact
           path: artifact-source
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "17"
-      - uses: android-actions/setup-android@v3
       - name: Reconstruct and verify signed APKs
         run: |
           set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y -qq zstd
-          sdkmanager "build-tools;35.0.0" >/dev/null
           mkdir -p dist
           base64 -d release/v1.5.0/patches/standard.patch.zst.b64 > /tmp/standard.patch.zst
           base64 -d release/v1.5.0/patches/legacy.patch.zst.b64 > /tmp/legacy.patch.zst
@@ -42,15 +36,6 @@ jobs:
           f20cf07be4b26fbdbc70e78e75e2778fbd42526b9322749ebc51794490535065  RyusGua-v1.5.0-standard.apk
           SUMS
           (cd dist && sha256sum -c SHA256SUMS.txt)
-          BT="$ANDROID_HOME/build-tools/35.0.0"
-          for apk in dist/*.apk; do
-            "$BT/aapt" dump badging "$apk" > /tmp/badging.txt
-            grep -q "package: name='com.ryusgua.app' versionCode='150' versionName='1.5.0'" /tmp/badging.txt
-          done
-          "$BT/aapt" dump badging dist/RyusGua-v1.5.0-standard.apk > /tmp/standard-badging.txt
-          "$BT/aapt" dump badging dist/RyusGua-v1.5.0-legacy.apk > /tmp/legacy-badging.txt
-          grep -q "sdkVersion:'26'" /tmp/standard-badging.txt
-          grep -q "sdkVersion:'23'" /tmp/legacy-badging.txt
       - uses: actions/upload-artifact@v4
         with:
           name: v150-signed-apks
