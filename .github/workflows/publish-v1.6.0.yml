@@ -75,10 +75,7 @@ jobs:
             adb shell monkey -p com.ryusgua.app -c android.intent.category.LAUNCHER 1
             sleep 8
             adb shell ps | grep -F com.ryusgua.app
-            if adb logcat -d AndroidRuntime:E '*:S' | grep -q 'FATAL EXCEPTION'; then
-              adb logcat -d AndroidRuntime:E '*:S'
-              exit 1
-            fi
+            test -z "$(adb logcat -d AndroidRuntime:E '*:S' | grep 'FATAL EXCEPTION')"
 
   publish:
     needs: [verify-assets, smoke]
