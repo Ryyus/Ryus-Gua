@@ -1,0 +1,53 @@
+name: Publish v1.7.0
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths: [".github/workflows/publish-v170.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: startsWith(github.head_ref, 'v170-publish-release')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      NOTES: |
+        ## 柳之卦 · Ryu's Gua v1.7.0
+
+        本次更新将六爻与塔罗正式拆分为两套适配各自体系的交互与内容结构。
+
+        - 新增一牌照见、三牌成阵、四象观局三种塔罗牌阵
+        - 78 张塔罗牌、牌阵与七篇本地索引迁移至独立 JSON
+        - 新增独立牌义页面与可选 AI 解牌，AI 不会重新抽牌
+        - 六爻 / 塔罗分别显示适用的交互设置与术理索引
+        - 优化塔罗牌面和三种翻牌样式
+        - 印章拖动时外框缓缓旋转，右上角模式入口改为无边框
+        - 增强经典浮动与星轨回旋效果
+        - 兼容 v1.6.0 已有三牌历史
+
+        Standard 支持 Android 8.0+；Legacy 支持 Android 6.0+。
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 491d8c55b5c697aeb056ff1651046ef22d312a81
+      - name: Ensure release does not already exist
+        run: '! gh release view v1.7.0 --repo Ryyus/Ryus-Gua >/dev/null 2>&1'
+      - name: Publish signed APKs
+        run: |
+          gh release create v1.7.0 \
+            --repo Ryyus/Ryus-Gua \
+            --target 491d8c55b5c697aeb056ff1651046ef22d312a81 \
+            --title "柳之卦 · Ryu's Gua v1.7.0" \
+            --notes "$NOTES" \
+            update/releases/v1.7.0/RyusGua-v1.7.0-standard.apk \
+            update/releases/v1.7.0/RyusGua-v1.7.0-legacy.apk \
+            update/releases/v1.7.0/SHA256SUMS.txt
+      - name: Re-download and verify public assets
+        run: |
+          mkdir public
+          gh release download v1.7.0 --repo Ryyus/Ryus-Gua -D public
+          cd public
+          sha256sum -c SHA256SUMS.txt
