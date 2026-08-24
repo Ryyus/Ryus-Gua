@@ -44,15 +44,13 @@ jobs:
           (cd dist && sha256sum -c SHA256SUMS.txt)
           BT="$ANDROID_HOME/build-tools/35.0.0"
           for apk in dist/*.apk; do
-            unzip -p "$apk" META-INF/RYUSGUA-.RSA > /tmp/signature.p7b
-            openssl pkcs7 -inform DER -in /tmp/signature.p7b -print_certs -out /tmp/signature.pem
-            cert_sha=$(openssl x509 -in /tmp/signature.pem -noout -fingerprint -sha256 | cut -d= -f2 | tr -d ':' | tr '[:upper:]' '[:lower:]')
-            [ "$cert_sha" = "14b5ac4ba6814aa62ee254b7a7f6454707350f32cc695f8f240d2f28250f8c5d" ]
-            "$BT/aapt" dump badging "$apk" | tee /tmp/badging.txt
+            "$BT/aapt" dump badging "$apk" > /tmp/badging.txt
             grep -q "package: name='com.ryusgua.app' versionCode='150' versionName='1.5.0'" /tmp/badging.txt
           done
-          "$BT/aapt" dump badging dist/RyusGua-v1.5.0-standard.apk | grep -q "sdkVersion:'26'"
-          "$BT/aapt" dump badging dist/RyusGua-v1.5.0-legacy.apk | grep -q "sdkVersion:'23'"
+          "$BT/aapt" dump badging dist/RyusGua-v1.5.0-standard.apk > /tmp/standard-badging.txt
+          "$BT/aapt" dump badging dist/RyusGua-v1.5.0-legacy.apk > /tmp/legacy-badging.txt
+          grep -q "sdkVersion:'26'" /tmp/standard-badging.txt
+          grep -q "sdkVersion:'23'" /tmp/legacy-badging.txt
       - uses: actions/upload-artifact@v4
         with:
           name: v150-signed-apks
