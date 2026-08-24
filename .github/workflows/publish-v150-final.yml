@@ -44,7 +44,7 @@ jobs:
           (cd dist && sha256sum -c SHA256SUMS.txt)
           BT="$ANDROID_HOME/build-tools/35.0.0"
           for apk in dist/*.apk; do
-            rsa_entry=$(unzip -Z1 "$apk" | grep -E '^META-INF/.*\.RSA$' | head -n 1)
+            rsa_entry=$(unzip -Z1 "$apk" 'META-INF/*.RSA')
             unzip -p "$apk" "$rsa_entry" > /tmp/signature.p7b
             openssl pkcs7 -inform DER -in /tmp/signature.p7b -print_certs -out /tmp/signature.pem
             cert_sha=$(openssl x509 -in /tmp/signature.pem -noout -fingerprint -sha256 | cut -d= -f2 | tr -d ':' | tr '[:upper:]' '[:lower:]')
