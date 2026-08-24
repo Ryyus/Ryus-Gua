@@ -2274,7 +2274,10 @@ public class MainActivity extends Activity implements SensorEventListener {
                 Toast.makeText(ctx,"已清除 " + providerLabel(selected) + " 的 API Key",Toast.LENGTH_SHORT).show();
             });
 
-            dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            dialog.setOnShowListener(d -> {
+                styleSettingsDialog(dialog);
+                animateSettingsContent(scroll);
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
                 String selected = providerValues[provider.getSelectedItemPosition()];
                 String modeValue=mode.getSelectedItemPosition()==1?AiSettingsStore.MODE_CHAT:AiSettingsStore.MODE_RESPONSES;
                 try {
@@ -2293,7 +2296,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                     if(startAiAfterSave) requestAiReading(now);
                     postInvalidateOnAnimation();
                 } catch(Exception ex){ Toast.makeText(ctx,ex.getMessage()==null?"保存失败":ex.getMessage(),Toast.LENGTH_LONG).show(); }
-            }));
+                });
+            });
             dialog.show();
         }
 
