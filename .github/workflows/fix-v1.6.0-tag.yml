@@ -1,0 +1,27 @@
+name: Fix v1.6.0 immutable tag
+
+on:
+  push:
+    branches: ["main"]
+    paths: [".github/workflows/fix-v1.6.0-tag.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  fix-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Move release tag to mirror commit and self-clean
+        run: |
+          target="$(git rev-parse HEAD^)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f v1.6.0 "$target"
+          git push --force origin refs/tags/v1.6.0
+          git rm .github/workflows/fix-v1.6.0-tag.yml
+          git commit -m "Clean v1.6.0 tag finalizer"
+          git push origin HEAD:main
