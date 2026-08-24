@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.5.0
+- 中文：精简卦象结果页，将“经文”和“排盘”移入离线解卦页；结果页顶部保留“设置”和“历史”，主流程收敛为“查看解卦”。
+- 中文：将原“再起一卦 / RECAST”改为“此卦已成 · 再起一卦”，保持四字·四字的既有文案节奏，并准确表达返回主页后再起卦的行为。
+- 中文：优化设置中心弹窗呈现，移除容易卡顿的系统窗口动画，改用短时硬件图层淡入。
+- 中文：“开屏进度”现覆盖全部七种开屏样式；电子法器、古意极简、周易原典、卜筮仪式、终端自检与六爻序列均增加对应进度表现。
+- 中文：交互设置新增“开屏演示”，可在不保存设置的情况下即时测试当前选择的开屏样式与进度效果。
+- 中文：版本提升至 1.5.0 / versionCode 150。
+- English: Simplified the result screen by moving Zhouyi Text and Liuyao Board into Offline Reading, while keeping Settings and History at the top.
+- English: Reworded the return action as “此卦已成 · 再起一卦” and made Offline Reading the single primary result action.
+- English: Replaced the janky settings window transition with a short hardware-layer fade.
+- English: Extended boot progress to all seven boot styles and added an instant Boot Preview action that does not save the selected draft.
+- English: Bumped the app to versionName 1.5.0 / versionCode 150.
+
 ## 1.4.0
 - 中文：新增 Java 原生、完全离线的六爻纳甲排盘：八宫世应、纳甲、六亲六神、月建日辰、旬空、旺衰、空破暗动、动爻化变、墓库、三合六合六冲、卦变与反吟伏吟。
 - 中文：结果页新增“排盘”，支持可选用神、复制完整盘面与打开 11 专题本地术理索引。
