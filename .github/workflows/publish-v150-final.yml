@@ -44,7 +44,7 @@ jobs:
           (cd dist && sha256sum -c SHA256SUMS.txt)
           BT="$ANDROID_HOME/build-tools/35.0.0"
           for apk in dist/*.apk; do
-            "$BT/apksigner" verify --verbose --print-certs "$apk" | tee /tmp/cert.txt
+            java -jar artifact-source/release/v1.5.0/unsigned/apksigner.jar verify --verbose --print-certs "$apk" | tee /tmp/cert.txt
             grep -q "Signer #1 certificate SHA-256 digest: 14b5ac4ba6814aa62ee254b7a7f6454707350f32cc695f8f240d2f28250f8c5d" /tmp/cert.txt
             "$BT/aapt" dump badging "$apk" | tee /tmp/badging.txt
             grep -q "package: name='com.ryusgua.app' versionCode='150' versionName='1.5.0'" /tmp/badging.txt
