@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.6.0
+- 中文：右上角静态“易”改为可点击的“六爻 / 塔罗”模式按钮，并新增与应用既有深绿、米白、朱红视觉一致的占卜选择页。
+- 中文：新增完整 78 张塔罗牌与“缘起 / 此刻 / 趋向”三牌阵；三张牌不重复，独立计算正逆位，提供逐牌释义、三牌合参与独立本地历史。
+- 中文：六爻主页中央“卦”印章支持拖动，松手后以缓慢柔和的动画自动归中；塔罗主页中央“牌”印章使用相同交互。
+- 中文：铜钱动画新增“星轨回旋”，三枚铜钱沿逐渐收束的椭圆轨道旋转并落定。
+- 中文：开屏演示结束后重新显示原设置层，并保留演示前未保存的开屏样式与进度开关草稿。
+- 中文：塔罗全流程离线运行，与六爻计算和历史相互独立；版本提升至 1.6.0 / versionCode 160。
+- English: Added a tappable Liuyao / Tarot mode selector and a matching mode-selection screen.
+- English: Added a complete 78-card, three-position Tarot spread with unique cards, upright/reversed meanings, combined offline interpretation, and separate local history.
+- English: Made the central seals draggable with a gentle automatic return to center, and added the Orbital Spiral coin animation.
+- English: Boot Preview now returns to the same Settings layer while preserving unsaved draft choices.
+- English: Bumped the app to versionName 1.6.0 / versionCode 160.
+
 ## 1.5.0
 - 中文：精简卦象结果页，将“经文”和“排盘”移入离线解卦页；结果页顶部保留“设置”和“历史”，主流程收敛为“查看解卦”。
 - 中文：将原“再起一卦 / RECAST”改为“此卦已成 · 再起一卦”，保持四字·四字的既有文案节奏，并准确表达返回主页后再起卦的行为。

@@ -1,11 +1,11 @@
 {
-  "versionCode": 150,
-  "versionName": "1.5.0",
-  "title": "柳之卦 v1.5.0 / Ryu's Gua 1.5.0",
-  "notes": "精简卦象结果页，将经文与排盘移入解卦；优化设置中心动画；七套开屏样式现均支持进度效果，并新增开屏演示。 / Simplified the result screen, moved Text and Board into Reading, smoothed settings, extended progress to all seven boot styles, and added Boot Preview.",
-  "releasePage": "https://github.com/Ryyus/Ryus-Gua/releases/tag/v1.5.0",
-  "apkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.5.0/RyusGua-v1.5.0-standard.apk",
-  "legacyApkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.5.0/RyusGua-v1.5.0-legacy.apk",
-  "mirrorApkUrl": "https://cdn.jsdelivr.net/gh/Ryyus/Ryus-Gua@v1.5.0/update/releases/v1.5.0/RyusGua-v1.5.0-standard.apk",
-  "legacyMirrorApkUrl": "https://cdn.jsdelivr.net/gh/Ryyus/Ryus-Gua@v1.5.0/update/releases/v1.5.0/RyusGua-v1.5.0-legacy.apk"
+  "versionCode": 160,
+  "versionName": "1.6.0",
+  "title": "柳之卦 v1.6.0 / Ryu's Gua 1.6.0",
+  "notes": "新增六爻 / 塔罗双占卜与完整 78 张三牌阵；中央印章支持拖动归中；新增星轨回旋动画；开屏演示返回原设置层。 / Added Liuyao / Tarot modes, a complete 78-card spread, draggable returning seals, Orbital Spiral animation, and Settings-preserving Boot Preview.",
+  "releasePage": "https://github.com/Ryyus/Ryus-Gua/releases/tag/v1.6.0",
+  "apkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.6.0/RyusGua-v1.6.0-standard.apk",
+  "legacyApkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.6.0/RyusGua-v1.6.0-legacy.apk",
+  "mirrorApkUrl": "https://cdn.jsdelivr.net/gh/Ryyus/Ryus-Gua@v1.6.0/update/releases/v1.6.0/RyusGua-v1.6.0-standard.apk",
+  "legacyMirrorApkUrl": "https://cdn.jsdelivr.net/gh/Ryyus/Ryus-Gua@v1.6.0/update/releases/v1.6.0/RyusGua-v1.6.0-legacy.apk"
 }
