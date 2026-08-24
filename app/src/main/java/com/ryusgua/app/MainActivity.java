@@ -1001,9 +1001,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             leftButton.set(dp(20), dp(136), w / 2f - dp(5), dp(172));
             rightButton.set(w / 2f + dp(5), dp(136), w - dp(20), dp(172));
             button(c, leftButton, "牌义", GOLD, false, 9.5f);
-            boolean hasSavedAi = currentTarotHistoryId != null && !currentTarotHistoryId.isEmpty()
-                    && TarotHistoryStore.find(getContext(), currentTarotHistoryId) != null
-                    && TarotHistoryStore.find(getContext(), currentTarotHistoryId).hasAi();
+            boolean hasSavedAi = aiText != null && !aiText.trim().isEmpty()
+                    && currentTarotHistoryId != null && !currentTarotHistoryId.isEmpty();
             button(c, rightButton, hasSavedAi ? "查看 AI 解牌" : "AI 解牌", GOLD, true, 9.5f);
             c.save(); c.clipRect(0, dp(184), w, h - dp(80));
             float y = dp(208) - scrollOffset;
@@ -1717,7 +1716,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             }
             if (!sealDragging) return false;
             if (e.getAction() == MotionEvent.ACTION_MOVE) {
-                float dx=x-sealLastX,dy=y-sealLastY;sealFrameAngle=(sealFrameAngle+(dx+dy)*.22f)%360f;sealLastX=x;sealLastY=y;
+                float dx=x-sealLastX,dy=y-sealLastY;sealFrameAngle=(sealFrameAngle+(float)Math.hypot(dx,dy)*.32f)%360f;sealLastX=x;sealLastY=y;
                 float contentW = Math.max(dp(240), getWidth() - safeInsetLeft - safeInsetRight);
                 float contentH = Math.max(dp(360), getHeight() - safeInsetTop - safeInsetBottom);
                 sealOffsetX = clamp(x - sealGrabX - contentW / 2f, -contentW / 2f + dp(58), contentW / 2f - dp(58));
