@@ -1,11 +1,21 @@
 # 柳之卦 · Ryu's Gua
 
-> **正式版 / Stable release: 1.4.0**  
+> **正式版 / Stable release: 1.5.0**  
 > **Android package:** `com.ryusgua.app`
 
 ## 中文
 
 **柳之卦（Ryu's Gua）** 是一款以三钱六爻为核心交互的 Android《周易》文化应用。1.0 起项目与 Android 应用统一使用“柳之卦”这一名称，并启用全新的包名 `com.ryusgua.app`。
+
+### 1.5.0 结果页与开屏优化
+
+- 精简起卦完成后的卦象页面：顶部保留 **设置 / 历史**，主操作只保留 **查看解卦**。
+- **经文 / 排盘** 移入离线解卦页，让卦象页先呈现结果，再进入需要的内容层。
+- 返回主页文案改为 **“此卦已成 · 再起一卦”**，延续四字·四字的界面节奏。
+- 优化设置中心的弹窗呈现，减少打开复杂设置时的瞬间卡顿。
+- **开屏进度** 现已覆盖全部七套开屏样式；非经典样式分别提供与主题相符的进度效果。
+- 交互设置新增 **开屏演示**，可即时测试当前选择的开屏样式与进度效果，演示不会保存草稿设置。
+- 版本号提升至 **1.5.0 / versionCode 150**。
 
 ### 1.4.0 本地六爻排盘
 
@@ -99,6 +109,16 @@ gradle assembleStandardDebug assembleLegacyDebug
 ## English
 
 **Ryu's Gua (柳之卦)** is an Android I Ching / Zhou Yi cultural app built around the traditional three-coin, six-line casting interaction. Starting with 1.0, the project and the Android app share one formal identity and use the new package name `com.ryusgua.app`.
+
+### What's new in 1.5.0
+
+- Simplified the completed-result screen: **Settings / History** stay at the top and **Offline Reading** is the single primary action.
+- Moved **Zhouyi Text / Liuyao Board** into the Offline Reading page.
+- Reworded the return action as **“此卦已成 · 再起一卦”** to match the established four-character rhythm.
+- Smoothed settings presentation by replacing the janky system window transition with a short hardware-layer fade.
+- Extended optional boot progress to all seven boot styles with theme-specific progress effects.
+- Added **Boot Preview** so the selected boot style and progress can be tested instantly without saving the draft.
+- Bumped the app to **1.5.0 / versionCode 150**.
 
 ### What's new in 1.4.0
 
