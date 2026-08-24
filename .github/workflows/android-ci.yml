@@ -28,11 +28,16 @@ jobs:
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
       - name: Build debug APK
         run: gradle assembleDebug
-      - name: Upload unsigned test APKs
+      - name: Build unsigned release APKs
+        run: gradle assembleStandardRelease assembleLegacyRelease
+      - name: Align release APKs
+        run: |
+          mkdir -p unsigned-release
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -p -f 4 app/build/outputs/apk/standard/release/app-standard-release-unsigned.apk unsigned-release/RyusGua-v1.6.0-standard-unsigned-aligned.apk
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -p -f 4 app/build/outputs/apk/legacy/release/app-legacy-release-unsigned.apk unsigned-release/RyusGua-v1.6.0-legacy-unsigned-aligned.apk
+      - name: Upload unsigned aligned release APKs
         uses: actions/upload-artifact@v4
         with:
-          name: RyusGua-v1.6.0-unsigned-test
-          path: |
-            app/build/outputs/apk/standard/debug/*.apk
-            app/build/outputs/apk/legacy/debug/*.apk
+          name: RyusGua-v1.6.0-unsigned-aligned-release
+          path: unsigned-release/*.apk
           if-no-files-found: error
