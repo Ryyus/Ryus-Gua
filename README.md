@@ -1,7 +1,6 @@
 # 柳之卦 · Ryu's Gua
 
-> **正式版 / Stable release: 1.6.0**  
-> **开发版本 / Next build: 1.7.0**  
+> **正式版 / Stable release: 1.7.0**  
 > **Android package:** `com.ryusgua.app`
 
 ## 中文
