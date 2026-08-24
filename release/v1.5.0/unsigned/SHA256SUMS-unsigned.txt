@@ -1,0 +1,2 @@
+feab8d9415baaf98012f65f1ccdcfbd57449d469b2333915c18e26c3fa0f4f0c  release/v1.5.0/unsigned/RyusGua-v1.5.0-legacy-unsigned-aligned.apk
+9eea0f129618c7f956a64fdc8e4cce5eec370c55f1511d5e62d0492f0b025bf8  release/v1.5.0/unsigned/RyusGua-v1.5.0-standard-unsigned-aligned.apk
