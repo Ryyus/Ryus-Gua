@@ -1,11 +1,21 @@
 # 柳之卦 · Ryu's Gua
 
-> **正式版 / Stable release: 1.5.0**  
+> **正式版 / Stable release: 1.6.0**  
 > **Android package:** `com.ryusgua.app`
 
 ## 中文
 
-**柳之卦（Ryu's Gua）** 是一款以三钱六爻为核心交互的 Android《周易》文化应用。1.0 起项目与 Android 应用统一使用“柳之卦”这一名称，并启用全新的包名 `com.ryusgua.app`。
+**柳之卦（Ryu's Gua）** 是一款以三钱六爻为核心、兼具本地塔罗三牌阵的 Android 占卜文化应用。1.0 起项目与 Android 应用统一使用“柳之卦”这一名称，并启用全新的包名 `com.ryusgua.app`。
+
+### 1.6.0 六爻 / 塔罗双占卜
+
+- 右上角由静态“易”改为可点击的 **六爻 / 塔罗** 模式按钮；选择页沿用深绿、米白与朱红的既有视觉语言。
+- 新增完整 **78 张塔罗牌**与三牌阵：**缘起 / 此刻 / 趋向**。抽牌不重复，包含正逆位、逐牌释义、三牌合参和独立本地历史。
+- 六爻主页中央“卦”印章支持拖动；松手后会以缓慢柔和的回弹动画自动归于正中，塔罗“牌”印章使用相同交互。
+- 铜钱动画新增 **星轨回旋**，三枚铜钱沿衰减轨道回旋并落定，同时保留经典浮动与物理飞出。
+- **开屏演示**结束后会回到原设置层，未保存的开屏样式与进度开关保持不变。
+- 塔罗计算、释义与历史均可完全离线使用；它不会改写六爻卦象，也不把抽牌包装成确定性预言。
+- 版本号提升至 **1.6.0 / versionCode 160**。
 
 ### 1.5.0 结果页与开屏优化
 
@@ -75,10 +85,12 @@
 
 ### 主要功能
 
+- 六爻 / 塔罗双占卜入口，可随时在主页右上角切换
 - 三钱六爻起卦：6 / 7 / 8 / 9、动爻与变卦
+- 完整 78 张塔罗牌三牌阵：缘起 / 此刻 / 趋向、正逆位、本地解牌与独立历史
 - 普通起卦与“正式起卦”定时模式，正式模式含五分钟节制规则
 - **7 套可切换开屏样式**，包括经典、古意、原典、仪式、终端与六爻启动方向
-- 经典浮动 / 物理飞出两套铜钱动画与可选垂直翻转
+- 经典浮动 / 物理飞出 / 星轨回旋三套铜钱动画与可选垂直翻转
 - 经文、历史、复制、分享、备注与固定（PIN）
 - 历史记录保存 `HH:mm:ss`、正式起卦标记与 AI 解卦结果；普通历史保留最近 30 条，PIN 项永久保留
 - AI 解卦支持 OpenAI、DeepSeek、Gemini、通义千问、Kimi 与自定义兼容端点
@@ -108,7 +120,17 @@ gradle assembleStandardDebug assembleLegacyDebug
 
 ## English
 
-**Ryu's Gua (柳之卦)** is an Android I Ching / Zhou Yi cultural app built around the traditional three-coin, six-line casting interaction. Starting with 1.0, the project and the Android app share one formal identity and use the new package name `com.ryusgua.app`.
+**Ryu's Gua (柳之卦)** is an Android divination culture app centered on the traditional three-coin Liuyao interaction and now complemented by an offline three-card Tarot spread. Starting with 1.0, the project and the Android app share one formal identity and use the package name `com.ryusgua.app`.
+
+### What's new in 1.6.0
+
+- Replaced the static top-right “易” mark with a tappable **Liuyao / Tarot** mode selector styled to match the existing app.
+- Added a complete **78-card Tarot deck** and a three-card **Origin / Present / Direction** spread with unique draws, upright/reversed meanings, combined offline interpretation, and separate local history.
+- Made the central Liuyao seal draggable; releasing it triggers a slow, gentle return to the exact center. The Tarot seal follows the same interaction.
+- Added a third coin animation, **Orbital Spiral**, alongside Classic Float and Physics Launch.
+- Boot Preview now returns to the same Settings layer and preserves unsaved boot-style/progress choices.
+- Tarot remains fully local, does not alter Liuyao calculations, and is presented as reflective guidance rather than deterministic prediction.
+- Bumped the app to **1.6.0 / versionCode 160**.
 
 ### What's new in 1.5.0
 
