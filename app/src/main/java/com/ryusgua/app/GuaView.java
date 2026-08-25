@@ -1531,8 +1531,13 @@ final class GuaView extends View {
         }
 
         private String offlineReadingText() {
+            return offlineReadingText(true);
+        }
+
+        private String offlineReadingText(boolean includeQuestion) {
             LiuYaoBoard.Board board = currentLiuYaoBoard();
-            String question = currentQuestion.isEmpty() ? "" : "【占问】\n" + currentQuestion + "\n\n";
+            String question = !includeQuestion || currentQuestion.isEmpty()
+                    ? "" : "【占问】\n" + currentQuestion + "\n\n";
             return question + OfflineInterpreter.interpret(lines, zhouYi)
                     + "\n\n【六爻盘面】\n" + board.digest();
         }
@@ -2281,13 +2286,17 @@ final class GuaView extends View {
             else { currentCoins[0] = "背"; currentCoins[1] = "背"; currentCoins[2] = "背"; }
         }
         private String resultText() {
+            return resultText(true);
+        }
+
+        private String resultText(boolean includeQuestion) {
             HexagramEngine.Hexagram base = HexagramEngine.lookup(lines, false);
             HexagramEngine.Hexagram changed = HexagramEngine.lookup(lines, true);
             List<String> moving = HexagramEngine.movingLineLabels(lines);
             ZhouYiRepository.TextEntry text = zhouYi.get(base.name);
             StringBuilder sb = new StringBuilder();
             sb.append("【柳之卦】\n");
-            if (!currentQuestion.isEmpty()) sb.append("占问：").append(currentQuestion).append("\n");
+            if (includeQuestion && !currentQuestion.isEmpty()) sb.append("占问：").append(currentQuestion).append("\n");
             sb.append("本卦：").append(base.compact()).append("（上").append(base.upper).append("下").append(base.lower).append("）\n");
             sb.append("卦辞：").append(text.guaCi).append("\n");
             sb.append("变卦：").append(changed.compact()).append("\n");
@@ -2308,11 +2317,11 @@ final class GuaView extends View {
             if (aiTarotMode) {
                 return DivinationPrompts.tarotUser(currentQuestion,
                         tarotDeck.aiFacts(tarotDraws, tarotSpread),
-                        tarotDeck.reading(tarotDraws, tarotSpread, currentQuestion));
+                        tarotDeck.reading(tarotDraws, tarotSpread, ""));
             }
             LiuYaoBoard.Board board = currentLiuYaoBoard();
-            return DivinationPrompts.liuYaoUser(currentQuestion, resultText(),
-                    board.toPlainText(), liuYaoKnowledge.relevantDigest(board), offlineReadingText());
+            return DivinationPrompts.liuYaoUser(currentQuestion, resultText(false),
+                    board.toPlainText(), liuYaoKnowledge.relevantDigest(board), offlineReadingText(false));
         }
 
         private void copyResult() {
@@ -2377,6 +2386,8 @@ final class GuaView extends View {
             final boolean requestTarot = aiTarotMode;
             final String requestSystemPrompt = DivinationPrompts.system(requestTarot);
             final String requestUserPrompt = aiPrompt();
+            final String requestHistoryId = requestTarot ? currentTarotHistoryId : currentHistoryId;
+            final String requestModel = settings.model;
             aiLoading = true;
             aiError = "";
             aiText = "";
@@ -2384,7 +2395,7 @@ final class GuaView extends View {
             aiReasoningExpanded = false;
             aiReasoningSummaryOnly = true;
             reasoningToggleButton.setEmpty();
-            aiModel = settings.model;
+            aiModel = requestModel;
             state = State.AI;
             scrollOffset = 0;
             haptic(HapticFeedbackConstants.CONFIRM);
@@ -2419,10 +2430,10 @@ final class GuaView extends View {
                         aiText = text;
                         synchronized (streamedReasoning) { aiReasoning = streamedReasoning.toString(); }
                         aiError = "";
-                        if (requestTarot && currentTarotHistoryId != null && !currentTarotHistoryId.isEmpty()) {
-                            TarotHistoryStore.updateAi(getContext(), currentTarotHistoryId, aiText, aiReasoning, aiReasoningSummaryOnly, aiModel);
-                        } else if (!requestTarot && currentHistoryId != null && !currentHistoryId.isEmpty()) {
-                            HistoryStore.updateAi(getContext(), currentHistoryId, aiText, aiReasoning, aiReasoningSummaryOnly, aiModel);
+                        if (requestTarot && requestHistoryId != null && !requestHistoryId.isEmpty()) {
+                            TarotHistoryStore.updateAi(getContext(), requestHistoryId, aiText, aiReasoning, aiReasoningSummaryOnly, requestModel);
+                        } else if (!requestTarot && requestHistoryId != null && !requestHistoryId.isEmpty()) {
+                            HistoryStore.updateAi(getContext(), requestHistoryId, aiText, aiReasoning, aiReasoningSummaryOnly, requestModel);
                         }
                         haptic(HapticFeedbackConstants.CONFIRM);
                         postInvalidateOnAnimation();
