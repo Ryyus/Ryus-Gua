@@ -1,0 +1,117 @@
+name: Publish v1.8.0
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/publish-v180.yml"
+      - "update/releases/v1.8.0/**"
+      - "update/latest.json"
+
+permissions:
+  contents: write
+
+env:
+  ASSET_DIR: update/releases/v1.8.0
+  CERT_SHA256: 14b5ac4ba6814aa62ee254b7a7f6454707350f32cc695f8f240d2f28250f8c5d
+
+jobs:
+  verify-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: android-actions/setup-android@v3
+      - name: Install Android build tools
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "build-tools;35.0.0"
+      - name: Verify hashes, signatures and manifest metadata
+        run: |
+          cd "$ASSET_DIR"
+          sha256sum -c SHA256SUMS.txt
+          for apk in RyusGua-v1.8.0-standard.apk RyusGua-v1.8.0-legacy.apk; do
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk" | tee "$apk.verify"
+            grep -F "Signer #1 certificate SHA-256 digest: $CERT_SHA256" "$apk.verify"
+          done
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging RyusGua-v1.8.0-standard.apk | tee standard.badging
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging RyusGua-v1.8.0-legacy.apk | tee legacy.badging
+          grep -F "package: name='com.ryusgua.app' versionCode='180' versionName='1.8.0'" standard.badging
+          grep -F "package: name='com.ryusgua.app' versionCode='180' versionName='1.8.0'" legacy.badging
+          grep -F "sdkVersion:'26'" standard.badging
+          grep -F "sdkVersion:'23'" legacy.badging
+
+  smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - api: 23
+            flavor: legacy
+          - api: 35
+            flavor: standard
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install and launch on API ${{ matrix.api }}
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          arch: x86_64
+          target: default
+          profile: pixel_2
+          emulator-boot-timeout: 600
+          disable-animations: true
+          script: |
+            adb logcat -c
+            adb install -r "$ASSET_DIR/RyusGua-v1.8.0-${{ matrix.flavor }}.apk"
+            adb shell am force-stop com.ryusgua.app
+            adb shell monkey -p com.ryusgua.app -c android.intent.category.LAUNCHER 1
+            sleep 8
+            adb shell ps | grep -F com.ryusgua.app
+            if adb logcat -d AndroidRuntime:E '*:S' | grep -q 'FATAL EXCEPTION'; then adb logcat -d AndroidRuntime:E '*:S'; exit 1; fi
+
+  publish:
+    needs: [verify-assets, smoke]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      NOTES: |
+        ## 柳之卦 · Ryu's Gua v1.8.0
+
+        - 六爻与塔罗新增可选占问内容，并随历史在本机保存
+        - 六爻 / 塔罗使用完全独立的 AI 系统提示词
+        - 重写塔罗离线合参，加入牌位、花色、正逆位与牌阵关系
+        - AI 正文调整为 350–550 字，并新增模型默认 / 低 / 中 / 高思考强度
+        - 改善 TalkBack、48dp 触控范围、字体缩放和紧凑屏布局
+        - 拆分 MainActivity、GuaView、AI 提示词、合参与无障碍组件
+
+        Standard 支持 Android 8.0+；Legacy 支持 Android 6.0+。
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Ensure release does not already exist
+        run: '! gh release view v1.8.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1'
+      - name: Create GitHub Release
+        run: |
+          gh release create v1.8.0 \
+            "$ASSET_DIR/RyusGua-v1.8.0-standard.apk" \
+            "$ASSET_DIR/RyusGua-v1.8.0-legacy.apk" \
+            "$ASSET_DIR/SHA256SUMS.txt" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "柳之卦 · Ryu's Gua v1.8.0" \
+            --notes "$NOTES"
+      - name: Re-download and verify public assets
+        run: |
+          mkdir public
+          gh release download v1.8.0 --repo "$GITHUB_REPOSITORY" -D public
+          cd public
+          sha256sum -c SHA256SUMS.txt
+      - name: Remove one-time release workflow
+        run: |
+          git rm .github/workflows/publish-v180.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: clean v1.8.0 release workflows"
+          git push origin HEAD:main
