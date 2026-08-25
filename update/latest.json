@@ -1,11 +1,11 @@
 {
-  "versionCode": 170,
-  "versionName": "1.7.0",
-  "title": "柳之卦 v1.7.0 / Ryu's Gua 1.7.0",
-  "notes": "新增一牌、三牌与四象塔罗牌阵、独立牌义和 AI 解牌；六爻 / 塔罗设置与索引分层；优化塔罗牌面、印章旋转及经典浮动 / 星轨回旋效果。 / Added selectable Tarot spreads, local card meanings and AI readings, mode-aware settings/reference indexes, refined cards, rotating seals, and stronger Classic / Orbital effects.",
-  "releasePage": "https://github.com/Ryyus/Ryus-Gua/releases/tag/v1.7.0",
-  "apkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.7.0/RyusGua-v1.7.0-standard.apk",
-  "legacyApkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.7.0/RyusGua-v1.7.0-legacy.apk",
-  "mirrorApkUrl": "https://cdn.jsdelivr.net/gh/Ryyus/Ryus-Gua@v1.7.0/update/releases/v1.7.0/RyusGua-v1.7.0-standard.apk",
-  "legacyMirrorApkUrl": "https://cdn.jsdelivr.net/gh/Ryyus/Ryus-Gua@v1.7.0/update/releases/v1.7.0/RyusGua-v1.7.0-legacy.apk"
+  "versionCode": 180,
+  "versionName": "1.8.0",
+  "title": "柳之卦 v1.8.0 / Ryu's Gua 1.8.0",
+  "notes": "新增可选占问内容，彻底分离六爻 / 塔罗 AI 提示词，重写塔罗离线合参；AI 正文缩短并新增思考强度；改善无障碍、小屏布局并拆分 MainActivity。 / Added optional questions, separate Liuyao/Tarot AI prompts, rewritten offline Tarot synthesis, quota-friendly answers with reasoning effort controls, accessibility and compact-screen improvements, and a split MainActivity.",
+  "releasePage": "https://github.com/Ryyus/Ryus-Gua/releases/tag/v1.8.0",
+  "apkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.8.0/RyusGua-v1.8.0-standard.apk",
+  "legacyApkUrl": "https://github.com/Ryyus/Ryus-Gua/releases/download/v1.8.0/RyusGua-v1.8.0-legacy.apk",
+  "mirrorApkUrl": "https://cdn.jsdelivr.net/gh/Ryyus/Ryus-Gua@v1.8.0/update/releases/v1.8.0/RyusGua-v1.8.0-standard.apk",
+  "legacyMirrorApkUrl": "https://cdn.jsdelivr.net/gh/Ryyus/Ryus-Gua@v1.8.0/update/releases/v1.8.0/RyusGua-v1.8.0-legacy.apk"
 }
