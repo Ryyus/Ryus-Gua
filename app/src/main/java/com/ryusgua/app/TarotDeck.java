@@ -77,15 +77,8 @@ final class TarotDeck {
     Card byId(int id){Card found=cardsById.get(id);return found==null?cards.get(0):found;}
     Draw[] draw(Spread spread){int count=Math.max(1,Math.min(6,spread==null?3:spread.size()));List<Card> shuffled=new ArrayList<>(cards);Collections.shuffle(shuffled,random);Draw[] out=new Draw[count];for(int i=0;i<count;i++)out[i]=new Draw(shuffled.get(i),random.nextBoolean());return out;}
 
-    String reading(Draw[] draws,Spread spread){
-        if(draws==null||spread==null||draws.length!=spread.size())return "牌阵尚未完成。";
-        StringBuilder out=new StringBuilder("【").append(spread.name).append("】\n");
-        for(int i=0;i<draws.length;i++){Draw d=draws[i];out.append("\n").append(spread.positions[i]).append(" · ").append(d.card.name).append(" · ").append(d.orientation()).append("\n").append(d.card.keywords(d.reversed)).append("。").append(d.card.meaning(d.reversed)).append("\n").append(spread.hints[i]).append("\n");}
-        out.append("\n【合参】\n");
-        if(draws.length==1)out.append("把“").append(draws[0].card.keywords(draws[0].reversed)).append("”当作此刻的观察镜面：").append(draws[0].card.advice);
-        else{out.append("牌阵同时呈现“");for(int i=0;i<draws.length;i++){if(i>0)out.append(i==draws.length-1?"”与“":"、");out.append(draws[i].card.keywords(draws[i].reversed));}out.append("”。先找出重复或冲突的主题，再从最可验证的位置行动；不要把单张牌孤立成定论。\n首要行动：").append(draws[Math.min(1,draws.length-1)].card.advice);}
-        return out.append("\n\n塔罗用于自我观察与娱乐参考，不替代医疗、法律、财务等专业判断；牌面是可讨论的叙事，不是固定结局。").toString();
-    }
+    String reading(Draw[] draws,Spread spread){return reading(draws,spread,"");}
+    String reading(Draw[] draws,Spread spread,String question){return TarotReadingComposer.compose(draws,spread,question);}
     String meaningText(Draw[] draws,Spread spread){
         if(draws==null||spread==null||draws.length!=spread.size())return "牌阵尚未完成。";StringBuilder out=new StringBuilder();
         for(int i=0;i<draws.length;i++){Draw d=draws[i];out.append("【").append(spread.positions[i]).append(" · ").append(d.card.name).append(" · ").append(d.orientation()).append("】\n").append(d.card.nameEn).append(" / ").append(d.card.family);if(!d.card.suit.isEmpty())out.append(" · ").append(d.card.suit);out.append("\n关键词：").append(d.card.keywords(d.reversed)).append("\n牌义：").append(d.card.meaning(d.reversed)).append("\n牌位：").append(spread.hints[i]).append("\n建议：").append(d.card.advice).append("\n\n");}

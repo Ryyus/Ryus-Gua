@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.8.0
+- 中文：六爻与塔罗主页均可选写下最多 120 字的占问；留空不影响起卦，写下后随结果和历史本地保存，并仅在用户主动调用 AI 时发送给已配置服务商。
+- 中文：六爻与塔罗使用完全独立的 AI 系统身份、结构要求与约束，修复塔罗请求仍继承《周易》助手身份的问题。
+- 中文：AI 正文调整为建议 350–550 个中文字符、最多 650 个字符，降低兼容接口因输出额度不足而中断的概率；AI 设置新增按服务商保存的模型默认/低/中/高思考强度。
+- 中文：塔罗离线合参新增大阿卡那比例、花色重心、正逆位结构、牌位关系与三牌/四象专属综合逻辑。
+- 中文：自绘界面增加 TalkBack / Switch Access 虚拟按钮、屏幕内容摘要、最小 48dp 触控范围、受控字体缩放及紧凑高度布局。
+- 中文：将自绘视图从 `MainActivity.java` 拆到独立 `GuaView.java`，并新增独立 AI 提示词、塔罗合参与无障碍组件；Activity 只保留生命周期、窗口和摇动传感器职责。
+- 中文：旧版六爻与塔罗历史没有占问字段时按空值兼容读取；版本提升至 1.8.0 / versionCode 180。
+- English: Added optional locally stored questions, fully separated Liuyao/Tarot AI identities, richer deterministic Tarot synthesis, shorter quota-friendly AI responses, provider-scoped reasoning effort, virtual accessibility nodes, compact-screen layout handling, and a split Activity/View architecture.
+
 ## 1.7.0
 - 中文：塔罗主页新增一牌照见、三牌成阵、四象观局三种牌阵；抽牌、翻牌、结果与历史按实际牌数自适应。
 - 中文：78 张塔罗牌、牌阵定义与七篇塔罗索引迁移至独立 `tarot_cards.json`，所有释义为柳之卦独立编写。
