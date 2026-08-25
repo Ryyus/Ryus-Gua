@@ -27,6 +27,10 @@ final class AiSettingsStore {
     static final String DEFAULT_MODEL = "gpt-5.6-terra";
     static final String MODE_RESPONSES = "responses";
     static final String MODE_CHAT = "chat";
+    static final String REASONING_DEFAULT = "default";
+    static final String REASONING_LOW = "low";
+    static final String REASONING_MEDIUM = "medium";
+    static final String REASONING_HIGH = "high";
 
     static final String PROVIDER_OPENAI = "openai";
     static final String PROVIDER_DEEPSEEK = "deepseek";
@@ -41,17 +45,24 @@ final class AiSettingsStore {
         final String model;
         final String mode;
         final String provider;
+        final String reasoningEffort;
 
         Settings(String endpoint, String apiKey, String model, String mode) {
-            this(endpoint, apiKey, model, mode, inferProvider(endpoint));
+            this(endpoint, apiKey, model, mode, inferProvider(endpoint), REASONING_LOW);
         }
 
         Settings(String endpoint, String apiKey, String model, String mode, String provider) {
+            this(endpoint, apiKey, model, mode, provider, REASONING_LOW);
+        }
+
+        Settings(String endpoint, String apiKey, String model, String mode, String provider,
+                 String reasoningEffort) {
             this.endpoint = endpoint;
             this.apiKey = apiKey;
             this.model = model;
             this.mode = mode;
             this.provider = provider == null ? PROVIDER_CUSTOM : provider;
+            this.reasoningEffort = normalizeReasoningEffort(reasoningEffort);
         }
 
         boolean isConfigured() {
@@ -68,6 +79,7 @@ final class AiSettingsStore {
     private static final String F_ENDPOINT = "endpoint";
     private static final String F_MODEL = "model";
     private static final String F_MODE = "mode";
+    private static final String F_REASONING = "reasoning_effort";
     private static final String F_KEY_CT = "key_ct";
     private static final String F_KEY_IV = "key_iv";
 
@@ -91,13 +103,15 @@ final class AiSettingsStore {
                 : providerEndpoint(provider);
         String model = p.getString(key(provider, F_MODEL), providerModel(provider));
         String mode = p.getString(key(provider, F_MODE), providerMode(provider));
+        String reasoningEffort = p.getString(key(provider, F_REASONING), REASONING_LOW);
         String apiKey = decryptApiKey(p, provider);
         return new Settings(
                 endpoint == null ? providerEndpoint(provider) : endpoint,
                 apiKey == null ? "" : apiKey,
                 model == null ? providerModel(provider) : model,
                 MODE_CHAT.equals(mode) ? MODE_CHAT : MODE_RESPONSES,
-                provider);
+                provider,
+                reasoningEffort);
     }
 
     static void save(Context context, String endpoint, String apiKey, String model, String mode) throws Exception {
@@ -105,6 +119,11 @@ final class AiSettingsStore {
     }
 
     static void save(Context context, String endpoint, String apiKey, String model, String mode, String provider) throws Exception {
+        save(context, endpoint, apiKey, model, mode, provider, REASONING_LOW);
+    }
+
+    static void save(Context context, String endpoint, String apiKey, String model, String mode,
+                     String provider, String reasoningEffort) throws Exception {
         provider = normalizeProvider(provider);
         endpoint = PROVIDER_CUSTOM.equals(provider)
                 ? normalizeEndpoint(endpoint) : providerEndpoint(provider);
@@ -117,7 +136,8 @@ final class AiSettingsStore {
                 .putString(K_ACTIVE_PROVIDER, provider)
                 .putString(key(provider, F_ENDPOINT), endpoint)
                 .putString(key(provider, F_MODEL), model)
-                .putString(key(provider, F_MODE), MODE_CHAT.equals(mode) ? MODE_CHAT : MODE_RESPONSES);
+                .putString(key(provider, F_MODE), MODE_CHAT.equals(mode) ? MODE_CHAT : MODE_RESPONSES)
+                .putString(key(provider, F_REASONING), normalizeReasoningEffort(reasoningEffort));
 
         // Empty input means "keep this provider's saved key". It no longer falls through
         // to another provider because every provider has its own ciphertext/IV pair.
@@ -233,6 +253,12 @@ final class AiSettingsStore {
 
     static String providerMode(String provider) {
         return PROVIDER_OPENAI.equals(normalizeProvider(provider)) ? MODE_RESPONSES : MODE_CHAT;
+    }
+
+    static String normalizeReasoningEffort(String effort) {
+        if (REASONING_LOW.equals(effort) || REASONING_MEDIUM.equals(effort)
+                || REASONING_HIGH.equals(effort)) return effort;
+        return REASONING_DEFAULT;
     }
 
     static String normalizeEndpoint(String endpoint) {

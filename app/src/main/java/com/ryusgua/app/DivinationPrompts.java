@@ -2,9 +2,9 @@ package com.ryusgua.app;
 
 /** Keeps Liuyao and Tarot AI identities, output policy and user facts separate. */
 final class DivinationPrompts {
-    static final int TARGET_MIN_CHARS = 700;
-    static final int TARGET_MAX_CHARS = 1000;
-    static final int HARD_MAX_CHARS = 1200;
+    static final int TARGET_MIN_CHARS = 350;
+    static final int TARGET_MAX_CHARS = 550;
+    static final int HARD_MAX_CHARS = 650;
 
     private static final String SAFETY =
             "最终回答只输出面向用户的结论，不得展示、复述或暗示内部思考过程、分析草稿、reasoning、thinking 或 <think> 标签。"

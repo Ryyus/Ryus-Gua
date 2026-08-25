@@ -120,14 +120,20 @@ final class AiClient {
             // Keep compatible chat endpoints from producing pages of text. DeepSeek counts
             // reasoning_content toward max_tokens, so leave enough room for a concise answer.
             body.put("max_tokens", 3200);
-            if (AiSettingsStore.PROVIDER_GEMINI.equals(s.provider)) {
-                body.put("reasoning_effort", "low");
+            if ((AiSettingsStore.PROVIDER_OPENAI.equals(s.provider)
+                    || AiSettingsStore.PROVIDER_GEMINI.equals(s.provider))
+                    && !AiSettingsStore.REASONING_DEFAULT.equals(s.reasoningEffort)) {
+                body.put("reasoning_effort", s.reasoningEffort);
             }
         } else {
             body.put("input", systemPrompt + "\n\n" + prompt);
             body.put("max_output_tokens", 2400);
             if (AiSettingsStore.PROVIDER_OPENAI.equals(s.provider) && isOpenAiReasoningModel(s.model)) {
-                body.put("reasoning", new JSONObject().put("effort", "low").put("summary", "auto"));
+                JSONObject reasoning = new JSONObject().put("summary", "auto");
+                if (!AiSettingsStore.REASONING_DEFAULT.equals(s.reasoningEffort)) {
+                    reasoning.put("effort", s.reasoningEffort);
+                }
+                body.put("reasoning", reasoning);
                 body.put("text", new JSONObject().put("verbosity", "low"));
             }
         }

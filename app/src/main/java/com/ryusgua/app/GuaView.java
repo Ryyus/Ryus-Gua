@@ -2821,6 +2821,16 @@ final class GuaView extends View {
             Spinner mode = new Spinner(ctx);
             mode.setAdapter(new ArrayAdapter<>(ctx, android.R.layout.simple_spinner_dropdown_item, new String[]{"Responses API", "Chat Completions（兼容模式）"}));
             mode.setSelection(AiSettingsStore.MODE_CHAT.equals(current[0].mode) ? 1 : 0); box.addView(mode);
+            TextView reasoningInfo = new TextView(ctx);
+            reasoningInfo.setText("思考强度 · OpenAI / Gemini 使用原生参数；其他兼容接口可能按模型默认处理");
+            reasoningInfo.setTextSize(9.5f); reasoningInfo.setTextColor(MUTED);
+            reasoningInfo.setPadding(0, (int)(7*density), 0, (int)(2*density)); box.addView(reasoningInfo);
+            Spinner reasoning = new Spinner(ctx);
+            String[] reasoningLabels = {"模型默认（最稳）", "低（推荐）", "中", "高"};
+            String[] reasoningValues = {AiSettingsStore.REASONING_DEFAULT, AiSettingsStore.REASONING_LOW,
+                    AiSettingsStore.REASONING_MEDIUM, AiSettingsStore.REASONING_HIGH};
+            reasoning.setAdapter(new ArrayAdapter<>(ctx, android.R.layout.simple_spinner_dropdown_item, reasoningLabels));
+            reasoning.setSelection(reasoningIndex(current[0].reasoningEffort)); box.addView(reasoning);
 
             provider.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
                 boolean first = true;
@@ -2835,6 +2845,7 @@ final class GuaView extends View {
                     else endpointInfo.setText("API 地址 · " + AiSettingsStore.providerEndpoint(selected));
                     model.setText(current[0].model);
                     mode.setSelection(AiSettingsStore.MODE_CHAT.equals(current[0].mode) ? 1 : 0);
+                    reasoning.setSelection(reasoningIndex(current[0].reasoningEffort));
                     key.setText("");
                     key.setHint(current[0].apiKey.isEmpty() ? "API Key" : "API Key（此服务商已保存；留空保持不变）");
                 }
@@ -2858,7 +2869,9 @@ final class GuaView extends View {
                 if (effectiveKey.isEmpty()) { Toast.makeText(ctx, "请先填写此服务商的 API Key", Toast.LENGTH_SHORT).show(); return; }
                 if (!endpointValue.startsWith("https://")) { Toast.makeText(ctx, "接口地址必须使用 HTTPS", Toast.LENGTH_SHORT).show(); return; }
                 String modeValue = mode.getSelectedItemPosition() == 1 ? AiSettingsStore.MODE_CHAT : AiSettingsStore.MODE_RESPONSES;
-                AiSettingsStore.Settings temp = new AiSettingsStore.Settings(endpointValue, effectiveKey, model.getText().toString().trim(), modeValue, selected);
+                String reasoningValue = reasoningValues[reasoning.getSelectedItemPosition()];
+                AiSettingsStore.Settings temp = new AiSettingsStore.Settings(endpointValue, effectiveKey,
+                        model.getText().toString().trim(), modeValue, selected, reasoningValue);
                 models.setEnabled(false); models.setText("读取中…");
                 new Thread(() -> {
                     try {
@@ -2890,12 +2903,15 @@ final class GuaView extends View {
                 String selected = providerValues[provider.getSelectedItemPosition()];
                 String modeValue=mode.getSelectedItemPosition()==1?AiSettingsStore.MODE_CHAT:AiSettingsStore.MODE_RESPONSES;
                 try {
-                    AiSettingsStore.save(ctx, aiEndpointValue(selected, endpoint), key.getText().toString(), model.getText().toString(), modeValue, selected);
+                    String reasoningValue=reasoningValues[reasoning.getSelectedItemPosition()];
+                    AiSettingsStore.save(ctx, aiEndpointValue(selected, endpoint), key.getText().toString(),
+                            model.getText().toString(), modeValue, selected, reasoningValue);
                     AiSettingsStore.Settings now=AiSettingsStore.load(ctx);
                     if (!selected.equals(now.provider)
                             || !aiEndpointValue(selected, endpoint).equals(now.endpoint)
                             || !model.getText().toString().trim().equals(now.model)
-                            || !modeValue.equals(now.mode)) {
+                            || !modeValue.equals(now.mode)
+                            || !reasoningValue.equals(now.reasoningEffort)) {
                         throw new IllegalStateException("保存后校验失败，请重试");
                     }
                     if(startAiAfterSave&&!now.isConfigured()){ Toast.makeText(ctx,"请填写并保存 " + providerLabel(selected) + " 的 API Key",Toast.LENGTH_SHORT).show(); return; }
@@ -2931,6 +2947,13 @@ final class GuaView extends View {
             if (AiSettingsStore.PROVIDER_QWEN.equals(provider)) return 3;
             if (AiSettingsStore.PROVIDER_KIMI.equals(provider)) return 4;
             return 5;
+        }
+
+        private int reasoningIndex(String effort) {
+            if (AiSettingsStore.REASONING_LOW.equals(effort)) return 1;
+            if (AiSettingsStore.REASONING_MEDIUM.equals(effort)) return 2;
+            if (AiSettingsStore.REASONING_HIGH.equals(effort)) return 3;
+            return 0;
         }
 
         static final class AccessibleNode {
