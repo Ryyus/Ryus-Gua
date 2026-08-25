@@ -16,11 +16,6 @@ import java.util.List;
 import java.util.Locale;
 
 final class AiClient {
-    private static final String SYSTEM_PROMPT =
-            "你是“柳之卦”的《周易》解卦助手。最终回答只输出面向用户的结论，不得在最终回答中展示、复述或暗示内部思考过程、分析草稿、reasoning、thinking 或 <think> 标签；若 API 提供独立 reasoning 字段，客户端会另行折叠展示。"
-            + "解读以传统《周易》卦义为参考，语言自然、克制、具体，不故弄玄虚，不使用绝对预言式措辞，也不要逐段复述用户已经看到的卦象数据。"
-            + "输出固定为四部分：①卦意：2至3句话；②动爻：仅有动爻时用2至4句话；③变卦：1至2句话；④建议：2至3条简短可执行建议。"
-            + "全文原则上控制在300至450个中文字符，最多不超过500个中文字符。医疗、法律、投资等高风险事项仅作传统文化娱乐参考，不替代专业判断。";
 
     interface StreamListener {
         void onAnswerDelta(String delta);
@@ -93,7 +88,7 @@ final class AiClient {
     private AiClient() {}
 
     static String interpret(AiSettingsStore.Settings s, String prompt) throws Exception {
-        return interpretStream(s, prompt, null);
+        return interpretStream(s, DivinationPrompts.system(false), prompt, null);
     }
 
     /**
@@ -102,6 +97,11 @@ final class AiClient {
      * for an expandable UI; OpenAI normally exposes a reasoning summary rather than raw CoT.
      */
     static String interpretStream(AiSettingsStore.Settings s, String prompt, StreamListener listener) throws Exception {
+        return interpretStream(s, DivinationPrompts.system(false), prompt, listener);
+    }
+
+    static String interpretStream(AiSettingsStore.Settings s, String systemPrompt, String prompt,
+                                  StreamListener listener) throws Exception {
         String path = AiSettingsStore.MODE_CHAT.equals(s.mode) ? "/chat/completions" : "/responses";
         URL url = new URL(apiUrl(s.endpoint, path));
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -114,18 +114,18 @@ final class AiClient {
         body.put("stream", true);
         if (AiSettingsStore.MODE_CHAT.equals(s.mode)) {
             JSONArray messages = new JSONArray();
-            messages.put(new JSONObject().put("role", "system").put("content", SYSTEM_PROMPT));
+            messages.put(new JSONObject().put("role", "system").put("content", systemPrompt));
             messages.put(new JSONObject().put("role", "user").put("content", prompt));
             body.put("messages", messages);
             // Keep compatible chat endpoints from producing pages of text. DeepSeek counts
             // reasoning_content toward max_tokens, so leave enough room for a concise answer.
-            body.put("max_tokens", 2000);
+            body.put("max_tokens", 3200);
             if (AiSettingsStore.PROVIDER_GEMINI.equals(s.provider)) {
                 body.put("reasoning_effort", "low");
             }
         } else {
-            body.put("input", SYSTEM_PROMPT + "\n\n" + prompt);
-            body.put("max_output_tokens", 1400);
+            body.put("input", systemPrompt + "\n\n" + prompt);
+            body.put("max_output_tokens", 2400);
             if (AiSettingsStore.PROVIDER_OPENAI.equals(s.provider) && isOpenAiReasoningModel(s.model)) {
                 body.put("reasoning", new JSONObject().put("effort", "low").put("summary", "auto"));
                 body.put("text", new JSONObject().put("verbosity", "low"));

@@ -18,6 +18,7 @@ final class HistoryStore {
     private static final String KEY = "entries";
     private static final int UNPINNED_LIMIT = 30;
     private static final int MAX_NOTE = 300;
+    private static final int MAX_QUESTION = 120;
     private static final int MAX_AI_TEXT = 12000;
     private static final int MAX_REASONING = 12000;
 
@@ -27,6 +28,7 @@ final class HistoryStore {
         final int[] lines;
         final boolean formal;
         final boolean pinned;
+        final String question;
         final String note;
         final String aiText;
         final String aiReasoning;
@@ -34,13 +36,14 @@ final class HistoryStore {
         final String aiModel;
 
         Entry(String id, long timeMillis, int[] lines, boolean formal, boolean pinned,
-              String note, String aiText, String aiReasoning,
+              String question, String note, String aiText, String aiReasoning,
               boolean aiReasoningSummaryOnly, String aiModel) {
             this.id = id == null || id.isEmpty() ? UUID.randomUUID().toString() : id;
             this.timeMillis = timeMillis;
             this.lines = lines.clone();
             this.formal = formal;
             this.pinned = pinned;
+            this.question = safe(question, MAX_QUESTION);
             this.note = safe(note, MAX_NOTE);
             this.aiText = safe(aiText, MAX_AI_TEXT);
             this.aiReasoning = safe(aiReasoning, MAX_REASONING);
@@ -54,10 +57,10 @@ final class HistoryStore {
 
     private HistoryStore() {}
 
-    static Entry add(Context context, int[] lines, boolean formal) {
+    static Entry add(Context context, int[] lines, boolean formal, String question) {
         List<Entry> entries = load(context);
         Entry entry = new Entry(UUID.randomUUID().toString(), System.currentTimeMillis(), lines,
-                formal, false, "", "", "", true, "");
+                formal, false, question, "", "", "", true, "");
         entries.add(0, entry);
         prune(entries);
         save(context, entries);
@@ -79,7 +82,7 @@ final class HistoryStore {
             Entry e = entries.get(i);
             if (!id.equals(e.id)) continue;
             entries.set(i, new Entry(e.id, e.timeMillis, e.lines, e.formal, e.pinned,
-                    e.note, aiText, reasoning, reasoningSummaryOnly, model));
+                    e.question, e.note, aiText, reasoning, reasoningSummaryOnly, model));
             break;
         }
         save(context, entries);
@@ -93,7 +96,7 @@ final class HistoryStore {
             if (!id.equals(e.id)) continue;
             pinned = !e.pinned;
             entries.set(i, new Entry(e.id, e.timeMillis, e.lines, e.formal, pinned,
-                    e.note, e.aiText, e.aiReasoning, e.aiReasoningSummaryOnly, e.aiModel));
+                    e.question, e.note, e.aiText, e.aiReasoning, e.aiReasoningSummaryOnly, e.aiModel));
             break;
         }
         prune(entries);
@@ -108,7 +111,7 @@ final class HistoryStore {
             Entry e = entries.get(i);
             if (!id.equals(e.id)) continue;
             entries.set(i, new Entry(e.id, e.timeMillis, e.lines, e.formal, e.pinned,
-                    note, e.aiText, e.aiReasoning, e.aiReasoningSummaryOnly, e.aiModel));
+                    e.question, note, e.aiText, e.aiReasoning, e.aiReasoningSummaryOnly, e.aiModel));
             break;
         }
         save(context, entries);
@@ -137,6 +140,7 @@ final class HistoryStore {
                 out.add(new Entry(id, time, lines,
                         o.optBoolean("formal", false),
                         o.optBoolean("pinned", false),
+                        o.optString("question", ""),
                         o.optString("note", ""),
                         o.optString("aiText", ""),
                         o.optString("aiReasoning", ""),
@@ -190,6 +194,7 @@ final class HistoryStore {
                 o.put("lines", l);
                 o.put("formal", entry.formal);
                 o.put("pinned", entry.pinned);
+                o.put("question", entry.question);
                 o.put("note", entry.note);
                 o.put("aiText", entry.aiText);
                 o.put("aiReasoning", entry.aiReasoning);
