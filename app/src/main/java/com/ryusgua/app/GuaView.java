@@ -1790,23 +1790,23 @@ final class GuaView extends View {
                     if (!dragging && state == State.HISTORY) {
                         if (MODE_TAROT.equals(divinationMode)) {
                             for (TarotHistoryHit hit : tarotHistoryHits) {
-                                if (hit.hit(pinRect, x, y)) {
+                                if (hit(hit.pinRect, x, y)) {
                                     boolean pinned = TarotHistoryStore.togglePin(getContext(), hit.entry.id);
                                     Toast.makeText(getContext(), pinned ? "已固定 · 不再自动删除" : "已取消固定", Toast.LENGTH_SHORT).show();
                                     postInvalidateOnAnimation(); return true;
                                 }
-                                if (hit.hit(noteRect, x, y)) { showTarotHistoryNoteDialog(hit.entry); return true; }
+                                if (hit(hit.noteRect, x, y)) { showTarotHistoryNoteDialog(hit.entry); return true; }
                                 if (hit.rect.contains(x, y)) { loadTarotHistoryEntry(hit.entry); return true; }
                             }
                             return true;
                         }
                         for (HistoryHit hit : historyHits) {
-                            if (hit.hit(pinRect, x, y)) {
+                            if (hit(hit.pinRect, x, y)) {
                                 boolean pinned = HistoryStore.togglePin(getContext(), hit.entry.id);
                                 Toast.makeText(getContext(), pinned ? "已固定 · 不再自动删除" : "已取消固定", Toast.LENGTH_SHORT).show();
                                 postInvalidateOnAnimation(); return true;
                             }
-                            if (hit.hit(noteRect, x, y)) {
+                            if (hit(hit.noteRect, x, y)) {
                                 showHistoryNoteDialog(hit.entry); return true;
                             }
                             if (hit.rect.contains(x, y)) {
